@@ -1,0 +1,49 @@
+/* PropApex identity and a small, consistent readability lift. */
+.brand-type strong { font-family: "Space Grotesk", sans-serif; font-size: 22px; letter-spacing: -.065em; }
+.brand-type small { margin-top: 4px; font-size: 6px; letter-spacing: .19em; }
+.brand-mark { border-radius: 13px; background: linear-gradient(140deg, #b9f7ff 0%, #70ddf7 56%, #9c90ff 100%); box-shadow: 0 0 30px rgba(98,213,244,.2), inset 0 1px rgba(255,255,255,.7); }
+.hero-description { font-size: 16px; }
+.desktop-nav a { font-size: 12px; }
+.button { font-size: 13px; }
+.button-small { font-size: 12px; }
+.announcement { font-size: 10px; }
+.hero-eyebrow { font-size: 10px; }
+.hero-proof p { font-size: 11px; }
+.hero-micro-stats span { font-size: 9px; }
+.trust-heading > p:last-child, .section-heading > p { font-size: 13px; }
+.trust-principles strong { font-size: 12px; }
+.trust-principles small { font-size: 10px; }
+.search-field input, .select-field select, .filter-button { font-size: 11px; }
+.firm-table th { font-size: 9px; }
+.firm-identity strong, .promo-cell strong { font-size: 11px; }
+.firm-identity small, .country-cell small, .allocation-cell small { font-size: 9px; }
+.tag-list span, .platform-list span { font-size: 8px; }
+.promo-cell button, .promo-cell .cashback-mini-action { font-size: 9px; }
+.rating-cell small { font-size: 8px; }
+.view-button { font-size: 9px; }
+.cashback-heading-copy p { font-size: 13px; }
+.cashback-step p { font-size: 9px; }
+.reward-firm-card > p, .reward-firm-card > button { font-size: 9px; }
+.cashback-calculator > label > span, .calculator-result > span { font-size: 9px; }
+.calculator-result small, .calculator-disclaimer { font-size: 8px; }
+.market-disclaimer { font-size: 9px; }
+.faq-item > button { font-size: 17px; }
+.faq-answer p { font-size: 11px; }
+.faq-intro > p:nth-of-type(2), .support-card p { font-size: 10px; }
+.footer-brand > p { font-size: 11px; }
+.footer-links a, .footer-email, .footer-bottom { font-size: 9px; }
+.risk-disclosure p { font-size: 9px; }
+.assist-bubble { font-size: 11px; }
+.assist-composer input { font-size: 11px; }
+.admin-table th { font-size: 7px; }
+.admin-table td { font-size: 9px; }
+.admin-kpis p, .admin-kpis small { font-size: 8px; }
+.admin-firm-top strong, .admin-review-head strong, .admin-section-title p { font-size: 9px; }
+.admin-preview-banner p { font-size: 8px; }
+
+@media (max-width: 760px) {
+  .brand-type strong { font-size: 20px; }
+  .hero-description { font-size: 14px; }
+  .section-heading > p, .trust-heading > p:last-child { font-size: 12px; }
+  .faq-item > button { font-size: 15px; }
+}

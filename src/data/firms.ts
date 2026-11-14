@@ -28,8 +28,11 @@ export type Firm = {
   cashbackRate?: number;
   status?: "active" | "archived";
   affiliateUrl?: string;
-  trackingParameter?: string;
+  affiliateClickParam?: string;
+  apexCode?: string;
 };
+
+export const isAffiliateTrackingReady = (firm: Pick<Firm, "affiliateUrl" | "apexCode">) => Boolean(firm.affiliateUrl?.trim() || firm.apexCode?.trim());
 
 export const firms: Firm[] = [
   {
@@ -371,11 +374,19 @@ export const cashbackRates: Record<string, number> = {
   "tradeify": 4,
 };
 
-let currentRates: Record<string, number> = { ...cashbackRates };
-export const synchronizeFirmRates = (listing: Firm[]) => {
-  currentRates = Object.fromEntries(listing.map((firm) => [firm.id, firm.cashbackRate ?? cashbackRates[firm.id] ?? 3]));
+export const getCashbackRate = (firmId: string) => {
+  try {
+    const saved = localStorage.getItem("apex_firms_admin_v1");
+    if (saved) {
+      const custom = (JSON.parse(saved) as Firm[]).find((firm) => firm.id === firmId);
+      if (typeof custom?.cashbackRate === "number") return custom.cashbackRate;
+    }
+  } catch { /* use the seeded rate */ }
+  return cashbackRates[firmId] ?? 3;
 };
-export const getCashbackRate = (firmId: string) => currentRates[firmId] ?? 3;
+
+export const cashbackRateFor = (firm: Pick<Firm, "id" | "cashbackRate">) =>
+  typeof firm.cashbackRate === "number" ? firm.cashbackRate : getCashbackRate(firm.id);
 
 export const formatReviews = (value: number) =>
   new Intl.NumberFormat("en-US", { notation: value > 9999 ? "compact" : "standard" }).format(value);

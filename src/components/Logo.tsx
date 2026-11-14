@@ -1,5 +1,3 @@
-import { useAccount } from "../context/AccountContext";
-
 type LogoProps = {
   compact?: boolean;
   className?: string;
@@ -8,24 +6,20 @@ type LogoProps = {
 export function LogoMark({ className = "" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 64 64" fill="none" aria-hidden="true">
-      <path
-        d="M31.9 6.5 57 54H44.2L32 29.4 19.7 54H7L31.9 6.5Z"
-        fill="currentColor"
-      />
-      <path d="M18.5 43.2 42.7 34.6 47 42.4 14.8 54.5 18.5 43.2Z" fill="currentColor" />
+      <path fill="currentColor" fillRule="evenodd" d="M8 54V10h21c12 0 19 6 19 17S41 44 29 44h-9v10H8Zm12-20h9c4 0 7-2 7-7s-3-7-7-7h-9v14Z" />
+      <path d="m32 54 12-31h8l12 31h-9l-2.5-7h-9L41 54h-9Zm13-14h6l-3-8-3 8Z" fill="currentColor" />
     </svg>
   );
 }
 
 export default function Logo({ compact = false, className = "" }: LogoProps) {
-  const { platformSettings } = useAccount();
   return (
     <span className={`brand ${className}`}>
-      <span className={`brand-mark ${platformSettings.siteLogo ? "has-custom-logo" : ""}`}>{platformSettings.siteLogo ? <img src={platformSettings.siteLogo} alt="APEX Trading logo" /> : <LogoMark />}</span>
+      <span className="brand-mark"><LogoMark /></span>
       {!compact && (
         <span className="brand-type">
-          <strong>APEX</strong>
-          <small>TRADING</small>
+          <strong>PropApex</strong>
+          <small>TRADING &amp; REWARDS</small>
         </span>
       )}
     </span>

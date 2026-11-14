@@ -13,7 +13,7 @@ type Props = {
 };
 
 export default function AuthModal({ open, mode, onModeChange, onClose, onSuccess }: Props) {
-  const { signUp, logIn } = useAccount();
+  const { signUp, logIn, backendConfigured } = useAccount();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,14 +50,14 @@ export default function AuthModal({ open, mode, onModeChange, onClose, onSuccess
         onSuccess(result.message);
       }
     } catch {
-      setError("The server could not complete sign-in. Check your connection and try again.");
+      setError("Account access is unavailable in this browser. Check privacy settings and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={mode === "login" ? "Welcome back" : "Create your APEX account"} eyebrow={mode === "login" ? "ACCOUNT LOGIN" : "JOIN APEX REWARDS"}>
+    <Modal open={open} onClose={onClose} title={mode === "login" ? "Welcome back" : "Create your PropApex account"} eyebrow={mode === "login" ? "ACCOUNT LOGIN" : "JOIN PropApex REWARDS"}>
       <div className="auth-layout">
         <div className="auth-aside">
           <span className="auth-logo"><LogoMark /></span>
@@ -68,7 +68,7 @@ export default function AuthModal({ open, mode, onModeChange, onClose, onSuccess
             <li><Check size={14} /> Personal referral link</li>
             <li><Check size={14} /> Publish and manage reviews</li>
           </ul>
-          <div className="auth-security"><ShieldCheck size={16} /><span>Passwords are hashed on the server. Your session uses an HTTP-only cookie, not browser storage.</span></div>
+          <div className="auth-security"><ShieldCheck size={16} /><span>{backendConfigured ? "Account access is verified by Supabase Auth. Protected profile roles are checked on the server." : "Preview credentials are stored only in this browser. Configure Supabase before accepting real member accounts."}</span></div>
         </div>
         <form className="auth-form" onSubmit={submit} noValidate>
           <div className="auth-tabs" role="tablist">
@@ -83,8 +83,8 @@ export default function AuthModal({ open, mode, onModeChange, onClose, onSuccess
             <label className="form-check"><input type="checkbox" checked={terms} onChange={(event) => setTerms(event.target.checked)} /><span><Check size={12} /></span><p>I understand that cashback requires an eligible tracked purchase and verification.</p></label>
           </>}
           {error && <div className="form-error" role="alert">{error}</div>}
-          <button className="button button-lime auth-submit" disabled={loading} type="submit">{loading ? "Please wait…" : mode === "login" ? "Log in to APEX" : "Create free account"}<ArrowRight size={17} /></button>
-          <p className="auth-switch">{mode === "login" ? "New to APEX?" : "Already have an account?"} <button type="button" onClick={() => onModeChange(mode === "login" ? "signup" : "login")}>{mode === "login" ? "Create an account" : "Log in"}</button></p>
+          <button className="button button-lime auth-submit" disabled={loading} type="submit">{loading ? "Please wait…" : mode === "login" ? "Log in to PropApex" : "Create free account"}<ArrowRight size={17} /></button>
+          <p className="auth-switch">{mode === "login" ? "New to PropApex?" : "Already have an account?"} <button type="button" onClick={() => onModeChange(mode === "login" ? "signup" : "login")}>{mode === "login" ? "Create an account" : "Log in"}</button></p>
         </form>
       </div>
     </Modal>

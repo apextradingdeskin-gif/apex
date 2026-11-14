@@ -1,8 +1,8 @@
-import { firms as seedFirms, getCashbackRate, type Firm } from "../data/firms";
+import { cashbackRateFor, firms as seedFirms, type Firm } from "../data/firms";
 let firms = seedFirms;
 import { rewardCatalog } from "../data/rewards";
 import { contact } from "../data/contact";
-import type { CashbackBalance, PublicUser, Purchase } from "../context/AccountContext";
+import type { PayoutRequest, PublicUser, Purchase } from "../context/AccountContext";
 
 export type AssistantAction =
   | { type: "link"; label: string; href: string; external?: boolean }
@@ -19,10 +19,11 @@ export type AssistantContext = {
   user: PublicUser | null;
   purchases: Purchase[];
   credits: { pending: number; available: number; spent: number; lifetime: number };
+  payoutRequests: PayoutRequest[];
+  payoutMethods: string[];
   firms?: Firm[];
   minPayout?: number;
-  cashback?: CashbackBalance;
-  creditRate?: number;
+  social?: { socialX: string; socialDiscord: string; socialInstagram: string; supportEmail: string };
 };
 
 const normalize = (text: string) =>
@@ -63,7 +64,7 @@ function firmSummary(firm: Firm) {
     `• Leverage: ${firm.leverage} · Max drawdown: ${firm.drawdown}`,
     `• Payouts: ${firm.payout} · Platforms: ${firm.platforms.join(", ")}`,
     `• Models: ${firm.models.join(", ")}`,
-    `• APEX cashback: ${getCashbackRate(firm.id)}%${firm.code ? ` · Listed code: ${firm.code}` : ""}`,
+    `• PropApex cashback: ${cashbackRateFor(firm)}%${firm.code ? ` · Listed code: ${firm.code}` : ""}`,
     `• Rating: ${firm.rating}/5 from ${firm.reviews.toLocaleString()} reviews`,
   ].join("\n");
 }
@@ -77,7 +78,7 @@ function compareFirms(list: Firm[]) {
     ["Max drawdown", (firm) => firm.drawdown],
     ["Payouts", (firm) => firm.payout],
     ["Platforms", (firm) => firm.platforms.join(", ")],
-    ["APEX cashback", (firm) => `${getCashbackRate(firm.id)}%`],
+    ["PropApex cashback", (firm) => `${cashbackRateFor(firm)}%`],
     ["Rating", (firm) => `${firm.rating}/5`],
   ];
   return [
@@ -96,22 +97,12 @@ type Intent = {
   reply: (query: string, ctx: AssistantContext, matchedFirms: Firm[]) => AssistantReply;
 };
 
-const humanHandoff = (): AssistantAction[] => [
-  ...(contact.discord ? [{ type: "link" as const, label: "Join Discord", href: contact.discord, external: true }] : []),
+const humanHandoff = (ctx: AssistantContext): AssistantAction[] => [
+  { type: "link", label: "Join Discord", href: ctx.social?.socialDiscord || contact.discord, external: true },
   { type: "event", label: "Email the team", event: "human" },
 ];
 
 const intents: Intent[] = [
-  {
-    id: "purchase-attribution",
-    keywords: ["webhook", "attribution", "affiliate", "conversion", "detect", "tracking", "proof", "partner"],
-    phrases: ["know someone purchased", "know if someone", "confirm a purchase", "track code purchases", "track my link"],
-    reply: (_query, ctx) => ({
-      confidence: "high",
-      text: "A click or shared coupon is not purchase proof. APEX records unique link activations, member-submitted order claims, and actual partner sale receipts separately. Partner receipts come from a signed webhook or an affiliate report checked by an administrator. Click IDs, member codes or checkout emails link a sale to a member; unmatched sales need manual reconciliation. Automatic detection requires the actual firm or affiliate provider to connect its reporting to APEX. No reward is approved just because a link was clicked.",
-      actions: ctx.user?.role === "admin" ? [{ type: "link", label: "Open purchase attribution", href: "#admin/attribution" }] : [{ type: "event", label: "Submit my order", event: "purchase" }],
-    }),
-  },
   {
     id: "greeting",
     keywords: ["hi", "hello", "hey", "yo", "morning", "evening", "sup", "help"],
@@ -119,7 +110,7 @@ const intents: Intent[] = [
     weight: 1,
     reply: (_q, ctx) => ({
       confidence: "high",
-      text: `Hi${ctx.user ? ` ${ctx.user.name.split(" ")[0]}` : ""}! I'm APEX Assist, the automated helper for APEX TRADING. I can explain cashback and credits, pull up any firm in our directory, compare two firms, or point you to the right tool. What do you need?`,
+      text: `Hi${ctx.user ? ` ${ctx.user.name.split(" ")[0]}` : ""}! I'm PropApex Assist, the automated helper for PropApex TRADING. I can explain cashback and credits, pull up any firm in our directory, compare two firms, or point you to the right tool. What do you need?`,
       suggestions: ["How does cashback work?", "Which firm has the best cashback?", "Compare FundingPips vs FundedNext", "Talk to a human"],
     }),
   },
@@ -133,34 +124,45 @@ const intents: Intent[] = [
     id: "human",
     keywords: ["human", "agent", "person", "team", "staff", "someone", "real", "support", "contact", "email", "discord", "reach", "talk", "speak", "complaint", "escalate"],
     phrases: ["talk to a human", "real person", "contact support", "speak to someone", "customer service"],
-    reply: () => ({
+    reply: (_query, ctx) => ({
       confidence: "high",
-      text: `For account-specific issues (payouts, verification or disputes), email **${contact.email}** and include your Member ID from the dashboard settings page. You can also use the enabled community links below. I can pre-fill an email with this conversation for you.`,
-      actions: humanHandoff(),
+      text: `No problem. The fastest route is our Discord, where the team and other traders are active. For account-specific issues (payouts, verification, disputes) email **${ctx.social?.supportEmail || contact.email}** and include your Member ID from the dashboard settings page. I can pre-fill an email with this conversation for you.`,
+      actions: humanHandoff(ctx),
     }),
   },
   {
     id: "social",
     keywords: ["twitter", "instagram", "insta", "ig", "social", "follow", "x.com", "channel", "community"],
-    reply: () => ({
+    reply: (_query, ctx) => ({
       confidence: "high",
-      text: ["You can find APEX here:", contact.x ? `X: ${contact.xHandle}` : "", contact.instagram ? `Instagram: ${contact.instagramHandle}` : "", contact.discord ? "Discord: community server" : "", `Email: ${contact.email}`].filter(Boolean).join("\n"),
+      text: `You can find PropApex here:\n• X: ${ctx.social?.socialX || contact.x}\n• Instagram: ${ctx.social?.socialInstagram || contact.instagram}\n• Discord: community server\n• Email: ${ctx.social?.supportEmail || contact.email}`,
       actions: [
-        ...(contact.x ? [{ type: "link" as const, label: "X", href: contact.x, external: true }] : []),
-        ...(contact.instagram ? [{ type: "link" as const, label: "Instagram", href: contact.instagram, external: true }] : []),
-        ...(contact.discord ? [{ type: "link" as const, label: "Discord", href: contact.discord, external: true }] : []),
+        { type: "link", label: "X", href: ctx.social?.socialX || contact.x, external: true },
+        { type: "link", label: "Instagram", href: ctx.social?.socialInstagram || contact.instagram, external: true },
+        { type: "link", label: "Discord", href: ctx.social?.socialDiscord || contact.discord, external: true },
       ],
+    }),
+  },
+  {
+    id: "affiliate-attribution",
+    keywords: ["purchase", "purchased", "bought", "conversion", "conversions", "attribution", "affiliate", "link", "code", "confirm", "confirmation", "know", "sold"],
+    phrases: ["how will i know", "someone purchased", "someone bought", "purchase through my link", "purchase with my code", "affiliate conversion", "track a sale"],
+    weight: 1.3,
+    reply: (_query, ctx) => ({
+      confidence: "high",
+      text: `PropApex creates a unique click ID when a member activates an enabled firm's PropApex link. A real purchase confirmation appears in the admin **Affiliate conversions** panel only if that firm or its affiliate network sends PropApex a signed server-to-server postback containing the click ID (or a matching PropApex code and order ID). A visit or a user-entered order is not proof of a sale. Some firms do not support postbacks, so their orders need manual verification.\n\n${ctx.user ? "You can follow your own submitted order in Dashboard → Purchases." : "Members can submit an order in their dashboard; it stays pending until verified."}`,
+      actions: [{ type: "link", label: "Open firm offers", href: "#top-prop-firms-section" }, { type: "link", label: "Cashback details", href: "#cashback" }],
     }),
   },
   {
     id: "cashback-how",
     keywords: ["cashback", "cash", "back", "rebate", "earn", "reward", "rewards", "work", "works", "how"],
     phrases: ["how does cashback", "cashback work", "how do i earn", "get cashback", "how to earn"],
-    reply: (_query, ctx) => ({
+    reply: () => ({
       confidence: "high",
-      text: `Cashback in four steps:\n1. **Activate** a firm's offer from your APEX account. We record a unique referral click, not a completed purchase.\n2. **Purchase** through the actual partner link or eligible code.\n3. **Verify** your order using the partner's sale report or submit your order details for review.\n4. **Get rewarded** once approved. You also earn ${ctx.creditRate ?? 1} APEX Credits per $1 of eligible net spend at the published rate.\n\nCashback rates are shown per firm. Refunded, duplicate or untracked orders may not qualify.`,
+      text: "Cashback in four steps:\n1. **Activate** a firm's offer from your PropApex account (we save the referral click).\n2. **Purchase** on the firm's official site through the tracked link or listed code.\n3. **Submit** the order ID, date and net amount in your dashboard.\n4. **Get rewarded** once the order is verified — cashback moves from pending to available, and you also earn 1 PropApex Credit per $1 of net spend.\n\nRates range from 3% to 8% depending on the firm. Refunded, duplicate or untracked orders may not qualify.",
       actions: [{ type: "link", label: "See cashback rates", href: "#cashback" }, { type: "event", label: "Track a purchase", event: "purchase" }],
-      suggestions: ["Which firm has the best cashback?", "When can I withdraw?", "What are APEX Credits?"],
+      suggestions: ["Which firm has the best cashback?", "When can I withdraw?", "What are PropApex Credits?"],
     }),
   },
   {
@@ -168,10 +170,10 @@ const intents: Intent[] = [
     keywords: ["best", "highest", "most", "top", "maximum", "max", "cashback", "rate", "rates", "percent"],
     phrases: ["best cashback", "highest cashback", "most cashback", "cashback rates", "which firm has the best"],
     reply: () => {
-      const ranked = [...firms].sort((a, b) => getCashbackRate(b.id) - getCashbackRate(a.id)).slice(0, 5);
+      const ranked = [...firms].sort((a, b) => cashbackRateFor(b) - cashbackRateFor(a)).slice(0, 5);
       return {
         confidence: "high",
-        text: `Current top APEX cashback rates:\n${ranked.map((firm, index) => `${index + 1}. **${firm.name}** — ${getCashbackRate(firm.id)}%${firm.code ? ` (code ${firm.code})` : ""}`).join("\n")}\n\nA higher rate shouldn't outweigh rule fit, though. Check drawdown type and payout terms first, then let cashback be the tiebreaker.`,
+        text: `Current top PropApex cashback rates:\n${ranked.map((firm, index) => `${index + 1}. **${firm.name}** — ${cashbackRateFor(firm)}%${firm.code ? ` (code ${firm.code})` : ""}`).join("\n")}\n\nA higher rate shouldn't outweigh rule fit, though. Check drawdown type and payout terms first, then let cashback be the tiebreaker.`,
         actions: [{ type: "link", label: "Open the rewards section", href: "#cashback" }],
         suggestions: ["Tell me about Shark Funded", "How does cashback work?"],
       };
@@ -182,15 +184,18 @@ const intents: Intent[] = [
     keywords: ["withdraw", "withdrawal", "payout", "paid", "threshold", "minimum", "when", "receive", "money", "cash out", "balance"],
     phrases: ["when can i withdraw", "payout threshold", "cash out", "get paid"],
     reply: (_q, ctx) => {
-      const approved = ctx.cashback?.available ?? ctx.purchases.filter((purchase) => purchase.status === "approved").reduce((sum, purchase) => sum + purchase.cashbackAmount, 0);
+      const approved = ctx.purchases.filter((purchase) => purchase.status === "approved").reduce((sum, purchase) => sum + purchase.cashbackAmount, 0);
+      const reserved = ctx.payoutRequests.filter((request) => ["requested", "processing", "paid"].includes(request.status)).reduce((sum, request) => sum + request.amount, 0);
+      const available = Math.max(0, approved - reserved);
       const pending = ctx.purchases.filter((purchase) => purchase.status === "pending").reduce((sum, purchase) => sum + purchase.cashbackAmount, 0);
       const threshold = ctx.minPayout ?? 25;
+      const latestRequest = ctx.payoutRequests[0];
       const personal = ctx.user
-        ? `\n\nYour account right now: **${money(approved)} available** and ${money(pending)} pending. ${approved >= threshold ? "You've met the threshold — use *Request payout* in the Cashback tab." : `You need ${money(Math.max(0, threshold - approved))} more approved cashback to reach the threshold.`}`
+        ? `\n\nYour account right now: **${money(available)} available**, ${money(reserved)} reserved for payout, and ${money(pending)} pending purchase verification.${latestRequest ? ` Your latest payout request is **${latestRequest.status}** for ${money(latestRequest.amount)}.` : ""} ${available >= threshold ? "You've met the threshold — request a payout from Dashboard → Cashback." : `You need ${money(Math.max(0, threshold - available))} more available cashback to reach the threshold.`}`
         : "\n\nLog in and I can tell you exactly where your balance stands.";
       return {
         confidence: "high",
-        text: `Only **approved** cashback counts toward withdrawals, with a **${money(threshold)} minimum** payout threshold. Pending amounts are waiting on purchase verification. Once you're over ${money(threshold)}, use *Request payout* in your dashboard's Cashback tab to submit a request inside APEX. You can follow requested, processing and paid statuses in the dashboard. Requested funds are reserved until the request is paid, rejected or cancelled.${personal}`,
+        text: `Only **available** cashback can be requested. The minimum is **${money(threshold)}**. Open Dashboard → Cashback, select *Request payout*, choose one of these methods (${ctx.payoutMethods.join(", ")}), and add the receiving email or wallet reference needed for that method. The request appears in your payout history and the balance is reserved until it is paid, rejected or cancelled.${personal}`,
         actions: ctx.user ? [{ type: "link", label: "Open Cashback tab", href: "#dashboard" }] : [{ type: "event", label: "Log in", event: "auth" }],
       };
     },
@@ -201,7 +206,7 @@ const intents: Intent[] = [
     phrases: ["my purchase", "my order", "how long", "still pending", "order status", "check status"],
     reply: (_q, ctx) => {
       if (!ctx.user) return { confidence: "medium", text: "To check a purchase I need you logged in — your orders are private to your account. Once you're in, ask me again and I'll summarise them.", actions: [{ type: "event", label: "Log in or sign up", event: "auth" }] };
-      if (ctx.purchases.length === 0) return { confidence: "high", text: "You haven't submitted any purchases yet. After you buy through an APEX link or code, add the order ID and net amount and I'll track it for you.", actions: [{ type: "event", label: "Track a purchase", event: "purchase" }] };
+      if (ctx.purchases.length === 0) return { confidence: "high", text: "You haven't submitted any purchases yet. After you buy through an PropApex link or code, add the order ID and net amount and I'll track it for you.", actions: [{ type: "event", label: "Track a purchase", event: "purchase" }] };
       const lines = ctx.purchases.slice(0, 5).map((purchase) => {
         const firm = firms.find((item) => item.id === purchase.firmId);
         return `• ${firm?.name ?? "Firm"} #${purchase.orderId} — ${money(purchase.amount)} → ${money(purchase.cashbackAmount)} cashback · **${purchase.status}**`;
@@ -223,7 +228,7 @@ const intents: Intent[] = [
       const personal = ctx.user ? `\n\nYou currently have **${ctx.credits.available.toLocaleString()} spendable credits** (${ctx.credits.pending.toLocaleString()} pending). ${ctx.credits.available >= cheapest.cost ? `That's enough for the ${cheapest.name}.` : `The entry-level reward (${cheapest.name}) costs ${cheapest.cost.toLocaleString()}.`}` : "";
       return {
         confidence: "high",
-        text: `**APEX Credits** are earned alongside cashback: 1 credit for every $1 of eligible net spend you submit. Credits stay pending until the purchase is approved, then become spendable in the Marketplace on challenge credits, trader tools, gift cards and experiences. Credits have no cash value and can't be transferred.${personal}`,
+        text: `**PropApex Credits** are earned alongside cashback: 1 credit for every $1 of eligible net spend you submit. Credits stay pending until the purchase is approved, then become spendable in the Marketplace on challenge credits, trader tools, gift cards and experiences. Credits have no cash value and can't be transferred.${personal}`,
         actions: [{ type: "link", label: "Browse the Marketplace", href: "#marketplace" }],
         suggestions: ["What can I redeem?", "How does cashback work?"],
       };
@@ -235,7 +240,7 @@ const intents: Intent[] = [
     phrases: ["what can i redeem", "what rewards", "what's in the marketplace", "list rewards"],
     reply: () => ({
       confidence: "high",
-      text: `The Marketplace currently lists ${rewardCatalog.length} rewards across four categories:\n${["Challenges", "Tools", "Gift cards", "Experiences"].map((category) => `• **${category}**: ${rewardCatalog.filter((item) => item.category === category).map((item) => `${item.name} (${item.cost.toLocaleString()})`).join(", ")}`).join("\n")}\n\nNote: redemptions are saved to your account as requests until the APEX team confirms availability and fulfilment.`,
+      text: `The Marketplace currently lists ${rewardCatalog.length} rewards across four categories:\n${["Challenges", "Tools", "Gift cards", "Experiences"].map((category) => `• **${category}**: ${rewardCatalog.filter((item) => item.category === category).map((item) => `${item.name} (${item.cost.toLocaleString()})`).join(", ")}`).join("\n")}\n\nNote: the catalog is a preview — redemptions are saved as requests until the rewards backend confirms fulfilment.`,
       actions: [{ type: "link", label: "Open the Marketplace", href: "#marketplace" }],
     }),
   },
@@ -245,7 +250,7 @@ const intents: Intent[] = [
     reply: (_q, _ctx, matched) => {
       if (matched.length) {
         const firm = matched[0];
-        return { confidence: "high", text: firm.code ? `For **${firm.name}** the listed code is **${firm.code}** (${firm.promo}). ${firm.offerDetails}` : `**${firm.name}** doesn't have a listed code right now — cashback is tracked through the activated link instead (${getCashbackRate(firm.id)}% back). ${firm.offerDetails}`, actions: [{ type: "link", label: `Open ${firm.name}`, href: `#firm-${firm.id}` }] };
+        return { confidence: "high", text: firm.code ? `For **${firm.name}** the listed code is **${firm.code}** (${firm.promo}). ${firm.offerDetails}` : `**${firm.name}** doesn't have a listed code right now — cashback is tracked through the activated link instead (${cashbackRateFor(firm)}% back). ${firm.offerDetails}`, actions: [{ type: "link", label: `Open ${firm.name}`, href: `#firm-${firm.id}` }] };
       }
       const withCodes = firms.filter((firm) => firm.code);
       return { confidence: "medium", text: `${withCodes.length} firms currently have a listed code:\n${withCodes.map((firm) => `• ${firm.name} — **${firm.code}** (${firm.promo})`).join("\n")}\n\nTell me a firm name and I'll give you its full offer details. Codes change often, so always confirm at checkout.`, actions: [{ type: "link", label: "See the offer desk", href: "#offers" }] };
@@ -268,7 +273,7 @@ const intents: Intent[] = [
     reply: (query, _ctx, matched) => {
       if (matched.length === 1) {
         const firm = matched[0];
-        const trustNote = /legit|trust|safe|scam|good/.test(query) ? `\n\nOn trust: ${firm.verified ? "it's listed and reviewed in our directory" : "it's listed but not yet marked as reviewed by APEX"}, with a ${firm.rating}/5 community rating. We don't guarantee any firm — read recent trader reviews, test support, and start with a size you can afford to lose.` : "";
+        const trustNote = /legit|trust|safe|scam|good/.test(query) ? `\n\nOn trust: ${firm.verified ? "it's listed and reviewed in our directory" : "it's listed but not yet marked as reviewed by PropApex"}, with a ${firm.rating}/5 community rating. We don't guarantee any firm — read recent trader reviews, test support, and start with a size you can afford to lose.` : "";
         return { confidence: "high", text: `${firmSummary(firm)}\n\n${firm.summary}${trustNote}`, actions: [{ type: "link", label: `Open ${firm.name}`, href: `#firm-${firm.id}` }, { type: "event", label: "Write a review", event: "review" }] };
       }
       if (matched.length > 1) return { confidence: "high", text: compareFirms(matched.slice(0, 3)) };
@@ -301,10 +306,10 @@ const intents: Intent[] = [
     keywords: ["account", "sign", "signup", "register", "login", "log", "password", "forgot", "reset", "delete", "profile", "name", "change"],
     phrases: ["sign up", "log in", "create account", "forgot password", "reset password", "delete account"],
     reply: (query, ctx) => {
-      if (/forgot|reset|password/.test(query)) return { confidence: "high", text: `Your account is stored on the server. Automated password-reset email is not enabled yet. If you're locked out, email **${contact.email}** from the address you registered with and the team will help. For security, the team must verify account ownership before arranging a reset.`, actions: humanHandoff() };
-      if (/delete/.test(query)) return { confidence: "high", text: `To delete your account and data, email **${contact.email}** with the subject "Delete my APEX account" from your registered address. Clearing your browser does not delete your server account or order history.`, actions: [{ type: "event", label: "Email the team", event: "human" }] };
+      if (/forgot|reset|password/.test(query)) return { confidence: "high", text: `In this preview, accounts are stored only in your browser, so there's no email-based password reset yet. If you're locked out, email **${ctx.social?.supportEmail || contact.email}** from the address you registered with and the team will help. Once the full backend is live, you'll be able to reset directly from the login screen.`, actions: humanHandoff(ctx) };
+      if (/delete/.test(query)) return { confidence: "high", text: `To delete your account and data, email **${ctx.social?.supportEmail || contact.email}** with the subject "Delete my PropApex account" from your registered address. Clearing your browser's site data also removes everything stored locally in this preview.`, actions: [{ type: "event", label: "Email the team", event: "human" }] };
       if (ctx.user) return { confidence: "high", text: `You're logged in as **${ctx.user.name}** (${ctx.user.email}). You can update your display name and copy your referral code (${ctx.user.referralCode}) in Dashboard → Settings.`, actions: [{ type: "link", label: "Open Settings", href: "#dashboard" }] };
-      return { confidence: "high", text: "Creating an account is free and takes a few seconds — name, email and a password of 8+ characters. It unlocks cashback tracking, APEX Credits, the Marketplace and reviews.", actions: [{ type: "event", label: "Create account / log in", event: "auth" }] };
+      return { confidence: "high", text: "Creating an account is free and takes a few seconds — name, email and a password of 8+ characters. It unlocks cashback tracking, PropApex Credits, the Marketplace and reviews.", actions: [{ type: "event", label: "Create account / log in", event: "auth" }] };
     },
   },
   {
@@ -312,7 +317,7 @@ const intents: Intent[] = [
     keywords: ["referral", "refer", "invite", "friend", "link", "share"],
     reply: (_q, ctx) => ({
       confidence: "high",
-      text: ctx.user ? `Your referral code is **${ctx.user.referralCode}**. Copy your invite link from Dashboard → Settings and share it — new members who sign up through it are attached to your account. Referral attribution is recorded by APEX. Any referral bonus is subject to the applicable offer and team verification.` : "Every member gets a personal referral code and invite link in Dashboard → Settings. Create an account to get yours.",
+      text: ctx.user ? `Your referral code is **${ctx.user.referralCode}**. Copy your invite link from Dashboard → Settings and share it — new members who sign up through it are attached to your account. Referral rewards are confirmed once the rewards backend is connected.` : "Every member gets a personal referral code and invite link in Dashboard → Settings. Create an account to get yours.",
       actions: ctx.user ? [{ type: "link", label: "Open Settings", href: "#dashboard" }] : [{ type: "event", label: "Create account", event: "auth" }],
     }),
   },
@@ -327,22 +332,22 @@ const intents: Intent[] = [
     keywords: ["should", "buy", "invest", "profit", "guaranteed", "guarantee", "pass", "win", "signals", "signal", "advice", "make money"],
     phrases: ["will i pass", "guaranteed profit", "should i buy", "trading signals", "make money"],
     weight: 0.8,
-    reply: () => ({ confidence: "medium", text: "I can't tell you whether to buy a challenge or predict if you'll pass — APEX is a research and rewards platform, not a financial adviser, and we don't sell signals. What I can do is show you a firm's rules, compare options, and help you size risk with the toolkit so the decision is yours and informed. Trading leveraged products carries real risk of loss.", actions: [{ type: "link", label: "Challenge planner", href: "#tools" }, { type: "link", label: "Our methodology", href: "#methodology" }] }),
+    reply: () => ({ confidence: "medium", text: "I can't tell you whether to buy a challenge or predict if you'll pass — PropApex is a research and rewards platform, not a financial adviser, and we don't sell signals. What I can do is show you a firm's rules, compare options, and help you size risk with the toolkit so the decision is yours and informed. Trading leveraged products carries real risk of loss.", actions: [{ type: "link", label: "Challenge planner", href: "#tools" }, { type: "link", label: "Our methodology", href: "#methodology" }] }),
   },
   {
     id: "what-is-apex",
     keywords: ["apex", "what", "is", "this", "site", "website", "do", "you", "platform", "legit"],
     phrases: ["what is apex", "what is this", "what do you do", "is apex legit", "how does apex make money"],
-    reply: () => ({ confidence: "medium", text: "**APEX TRADING** is an independent prop-firm comparison and rewards platform. We list firms with their rules, payouts and platforms; you earn cashback and APEX Credits when you buy through our tracked links or codes; and the community shares reviews. We earn an affiliate commission from firms when you buy through us, and we share part of that back with you as cashback. We're not a broker, don't hold your funds, and don't give financial advice.", actions: [{ type: "link", label: "Why APEX", href: "#about" }], suggestions: ["How does cashback work?", "Which firm has the best cashback?"] }),
+    reply: () => ({ confidence: "medium", text: "**PropApex TRADING** is an independent prop-firm comparison and rewards platform. We list firms with their rules, payouts and platforms; you earn cashback and PropApex Credits when you buy through our tracked links or codes; and the community shares reviews. We earn an affiliate commission from firms when you buy through us, and we share part of that back with you as cashback. We're not a broker, don't hold your funds, and don't give financial advice.", actions: [{ type: "link", label: "Why PropApex", href: "#about" }], suggestions: ["How does cashback work?", "Which firm has the best cashback?"] }),
   },
 ];
 
-const fallbackSuggestions = ["How does cashback work?", "Which firm has the best cashback?", "What are APEX Credits?", "Talk to a human"];
+const fallbackSuggestions = ["How does cashback work?", "Which firm has the best cashback?", "What are PropApex Credits?", "Talk to a human"];
 
 export function answerQuestion(rawQuery: string, ctx: AssistantContext): AssistantReply {
   if (ctx.firms) firms = ctx.firms.filter((firm) => firm.status !== "archived");
   const query = normalize(rawQuery);
-  if (!query) return { confidence: "low", text: "Ask me anything about APEX — cashback, credits, a specific firm, or where to find something.", suggestions: fallbackSuggestions };
+  if (!query) return { confidence: "low", text: "Ask me anything about PropApex — cashback, credits, a specific firm, or where to find something.", suggestions: fallbackSuggestions };
 
   const matchedFirms = findFirms(query);
   const tokens = new Set(query.split(" "));
@@ -374,8 +379,8 @@ export function answerQuestion(rawQuery: string, ctx: AssistantContext): Assista
 
   return {
     confidence: "low",
-    text: "I'm not sure I understood that. I'm an automated assistant trained on APEX's own help content, so I'm best at questions about cashback, credits, the marketplace, our listed firms and the tools. For anything else — or if you'd rather talk to a person — the team is on Discord and email.",
-    actions: humanHandoff(),
+    text: "I'm not sure I understood that. I'm an automated assistant trained on PropApex's own help content, so I'm best at questions about cashback, credits, the marketplace, our listed firms and the tools. For anything else — or if you'd rather talk to a person — the team is on Discord and email.",
+    actions: humanHandoff(ctx),
     suggestions: fallbackSuggestions,
   };
 }

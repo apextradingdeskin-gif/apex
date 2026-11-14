@@ -13,44 +13,28 @@ type ModalProps = {
 export default function Modal({ open, onClose, title, eyebrow, children, wide = false }: ModalProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLElement>(null);
-  const onCloseRef = useRef(onClose);
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
-    const timer = window.setTimeout(() => {
-      if (panelRef.current?.contains(document.activeElement)) return;
-      const firstInput = panelRef.current?.querySelector<HTMLElement>('input:not([type="checkbox"]):not([type="file"]),select,textarea');
-      (firstInput ?? closeRef.current)?.focus();
-    }, 40);
+    const timer = window.setTimeout(() => closeRef.current?.focus(), 40);
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCloseRef.current();
-      if (event.key === "Tab" && panelRef.current) {
-        const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex="0"]')).filter((element) => element.getClientRects().length > 0);
-        const first = focusable[0]; const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-      }
+      if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.clearTimeout(timer);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
-      if (previousFocus?.isConnected) previousFocus.focus();
     };
-  }, [open]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
   return (
     <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section
-        ref={panelRef}
         className={`modal-panel ${wide ? "modal-panel-wide" : ""}`}
         role="dialog"
         aria-modal="true"

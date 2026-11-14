@@ -15,12 +15,12 @@ export default function ReviewCenter({ onWriteReview }: { onWriteReview: (firm: 
     <section className="review-center" id="community-reviews">
       <div className="container">
         <div className="review-center-heading">
-          <div><p className="eyebrow"><span /> TRADER COMMUNITY</p><h2>Experiences worth<br /><em>reading before buying.</em></h2><p>Specific accounts, honest ratings and practical payout context from APEX members.</p></div>
+          <div><p className="eyebrow"><span /> TRADER COMMUNITY</p><h2>Experiences worth<br /><em>reading before buying.</em></h2><p>Specific accounts, honest ratings and practical payout context from PropApex members.</p></div>
           <button className="button button-lime button-large" onClick={() => onWriteReview(null)}><PenLine size={17} /> Write a review</button>
         </div>
 
         <div className="review-summary-bar">
-          <div className="review-total"><strong>{publicReviews.length}</strong><span>Community reviews</span></div>
+          <div className="review-total"><strong>{publicReviews.length}</strong><span>Published on this device</span></div>
           <div className="review-average"><span><Star size={18} fill="currentColor" /> {average ? average.toFixed(1) : "—"}</span><small>Community average</small></div>
           <div className="review-guidance"><ShieldCheck size={18} /><p>Purchase labels appear only when a review matches an order submitted by the same member.</p></div>
           <label className="review-filter"><span>Filter by firm</span><select value={firmFilter} onChange={(event) => setFirmFilter(event.target.value)}><option value="All">All reviewed firms</option>{firms.filter((firm) => reviews.some((review) => review.firmId === firm.id)).map((firm) => <option key={firm.id} value={firm.id}>{firm.name}</option>)}</select></label>
@@ -44,7 +44,7 @@ export default function ReviewCenter({ onWriteReview }: { onWriteReview: (firm: 
         ) : (
           <div className="reviews-empty">
             <span><MessageSquarePlus size={32} /></span>
-            <div><h3>{reviews.length ? "No reviews for this firm yet" : "Your experience can start the conversation"}</h3><p>{reviews.length ? "Choose another firm or share the first review for this one." : "There are no published member reviews yet. Create an account and share a specific, useful experience."}</p></div>
+            <div><h3>{reviews.length ? "No reviews for this firm yet" : "Your experience can start the conversation"}</h3><p>{reviews.length ? "Choose another firm or share the first review for this one." : "There are no member reviews on this device yet. Create an account and publish a specific, useful experience—no prefilled testimonials."}</p></div>
             <button className="button button-outline" onClick={() => onWriteReview(firmFilter === "All" ? null : firms.find((firm) => firm.id === firmFilter) ?? null)}>Write the first review <ArrowRight size={15} /></button>
           </div>
         )}

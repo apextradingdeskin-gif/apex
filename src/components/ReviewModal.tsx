@@ -8,8 +8,8 @@ type Props = { open: boolean; initialFirm: Firm | null; onClose: () => void; onN
 
 export default function ReviewModal({ open, initialFirm, onClose, onNotice }: Props) {
   const { user, firms, reviews, purchases, saveReview } = useAccount();
-  const [firmId, setFirmId] = useState(initialFirm?.id ?? firms[0]?.id ?? "");
-  const firm = useMemo(() => firms.find((item) => item.id === firmId) ?? firms[0], [firmId, firms]);
+  const [firmId, setFirmId] = useState(initialFirm?.id ?? firms[0].id);
+  const firm = useMemo(() => firms.find((item) => item.id === firmId) ?? firms[0], [firmId]);
   const existing = reviews.find((review) => review.userId === user?.id && review.firmId === firmId);
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
@@ -18,17 +18,14 @@ export default function ReviewModal({ open, initialFirm, onClose, onNotice }: Pr
   const [body, setBody] = useState("");
   const [recommend, setRecommend] = useState(true);
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    const nextFirmId = initialFirm?.id ?? firms[0]?.id ?? "";
+    const nextFirmId = initialFirm?.id ?? firms[0].id;
     const current = reviews.find((review) => review.userId === user?.id && review.firmId === nextFirmId);
     setFirmId(nextFirmId); setRating(current?.rating ?? 0); setAccountModel(current?.accountModel ?? "");
     setTitle(current?.title ?? ""); setBody(current?.body ?? ""); setRecommend(current?.recommend ?? true); setError("");
   }, [open, initialFirm, user?.id]);
-
-  if (!firm) return null;
 
   const changeFirm = (nextFirmId: string) => {
     const current = reviews.find((review) => review.userId === user?.id && review.firmId === nextFirmId);
@@ -38,12 +35,9 @@ export default function ReviewModal({ open, initialFirm, onClose, onNotice }: Pr
 
   const verifiedPurchase = purchases.some((purchase) => purchase.firmId === firmId && purchase.status !== "rejected");
 
-  const submit = async (event: FormEvent) => {
+  const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (saving) return;
-    setSaving(true);
-    const result = await saveReview({ firmId, rating, accountModel, title, body, recommend });
-    setSaving(false);
+    const result = saveReview({ firmId, rating, accountModel, title, body, recommend });
     if (!result.ok) setError(result.message);
     else {
       onNotice(result.message);
@@ -66,7 +60,7 @@ export default function ReviewModal({ open, initialFirm, onClose, onNotice }: Pr
         <label className="form-field"><span>Your experience</span><textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="What account did you use? How were the rules, platform, support and payout process? Include details another trader can verify." rows={5} maxLength={1200} required /><small className={body.length > 0 && body.length < 40 ? "needs-more" : ""}>{body.length}/1200 · minimum 40 characters</small></label>
         <label className="recommend-toggle"><input type="checkbox" checked={recommend} onChange={(event) => setRecommend(event.target.checked)} /><span><ThumbsUp size={16} /></span><p><strong>I would recommend this firm</strong><small>Your recommendation is shown alongside your rating.</small></p></label>
         {error && <div className="form-error" role="alert">{error}</div>}
-        <div className="review-form-footer"><p>Reviews are saved to your account and may be moderated before publication. Do not include passwords or personal payout documents.</p><button className="button button-lime" type="submit">{existing ? "Update review" : "Publish review"} <ArrowRight size={16} /></button></div>
+        <div className="review-form-footer"><p>Reviews are stored on this device in this front-end version. Do not include passwords or personal payout documents.</p><button className="button button-lime" type="submit">{existing ? "Update review" : "Publish review"} <ArrowRight size={16} /></button></div>
       </form>
     </Modal>
   );

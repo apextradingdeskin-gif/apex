@@ -1,9 +1,8 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Firm } from "../data/firms";
 
 export default function FirmLogo({ firm, large = false }: { firm: Firm; large?: boolean }) {
   const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [firm.logo]);
   return (
     <span
       className={`firm-logo ${large ? "firm-logo-large" : ""}`}

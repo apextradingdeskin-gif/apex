@@ -12,18 +12,17 @@ export function InstagramIcon({ size = 16 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>;
 }
 
-export const getSocialLinks = () => [
-  { id: "x", label: "X (Twitter)", handle: contact.xHandle, href: contact.x, Icon: XIcon },
-  { id: "discord", label: "Discord", handle: "Join the community", href: contact.discord, Icon: DiscordIcon },
-  { id: "instagram", label: "Instagram", handle: contact.instagramHandle, href: contact.instagram, Icon: InstagramIcon },
-  { id: "email", label: "Email", handle: contact.email, href: `mailto:${contact.email}`, Icon: ({ size = 16 }: { size?: number }) => <Mail size={size} /> },
-];
-
 export default function SocialLinks({ compact = false, className = "" }: { compact?: boolean; className?: string }) {
-  useAccount();
+  const { platformSettings } = useAccount();
+  const socialLinks = [
+    { id: "x", label: "X (Twitter)", handle: platformSettings.socialX.replace(/^https?:\/\/(www\.)?/, ""), href: platformSettings.socialX, Icon: XIcon },
+    { id: "discord", label: "Discord", handle: "Join the community", href: platformSettings.socialDiscord, Icon: DiscordIcon },
+    { id: "instagram", label: "Instagram", handle: platformSettings.socialInstagram.replace(/^https?:\/\/(www\.)?/, ""), href: platformSettings.socialInstagram, Icon: InstagramIcon },
+    { id: "email", label: "Email", handle: platformSettings.supportEmail || contact.email, href: `mailto:${platformSettings.supportEmail || contact.email}`, Icon: ({ size = 16 }: { size?: number }) => <Mail size={size} /> },
+  ];
   return (
     <div className={`social-links ${compact ? "compact" : ""} ${className}`}>
-      {getSocialLinks().filter((item) => Boolean(item.href)).map(({ id, label, handle, href, Icon }) => (
+      {socialLinks.map(({ id, label, handle, href, Icon }) => (
         <a key={id} href={href} target={id === "email" ? undefined : "_blank"} rel={id === "email" ? undefined : "noreferrer"} aria-label={label} title={label}>
           <span className="social-icon"><Icon size={16} /></span>
           {!compact && <span className="social-text"><strong>{label}</strong><small>{handle}</small></span>}

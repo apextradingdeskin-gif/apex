@@ -17,7 +17,7 @@ import {
   Star,
   X,
 } from "lucide-react";
-import { formatReviews, getCashbackRate, type Firm } from "../data/firms";
+import { cashbackRateFor, formatReviews, isAffiliateTrackingReady, type Firm } from "../data/firms";
 import { useAccount } from "../context/AccountContext";
 import { copyText } from "../utils/copyText";
 import FirmLogo from "./FirmLogo";
@@ -55,7 +55,7 @@ export default function FirmDirectory({ onActivateCashback, onWriteReview }: Fir
   const [sort, setSort] = useState("popular");
   const [offersOnly, setOffersOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(7);
+  const [visibleCount, setVisibleCount] = useState(12);
   const [selectedFirm, setSelectedFirm] = useState<Firm | null>(null);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
@@ -84,7 +84,7 @@ export default function FirmDirectory({ onActivateCashback, onWriteReview }: Fir
       });
   }, [activeFirms, query, market, platform, country, offersOnly, sort]);
 
-  useEffect(() => setVisibleCount(7), [query, market, platform, country, offersOnly, sort]);
+  useEffect(() => setVisibleCount(12), [query, market, platform, country, offersOnly, sort]);
 
   useEffect(() => {
     const onMarketFilter = (event: Event) => {
@@ -137,14 +137,15 @@ export default function FirmDirectory({ onActivateCashback, onWriteReview }: Fir
   }, []);
 
   const handleCopy = async (firm: Firm) => {
-    if (!firm.code) return;
-    const success = await copyText(firm.code);
+    const code = firm.apexCode || firm.code;
+    if (!code) return;
+    const success = await copyText(code);
     if (success) {
       setCopied(firm.id);
-      setNotice(`${firm.code} copied. Verify eligibility before checkout.`);
+      setNotice(`${code} copied. Verify eligibility before checkout.`);
       window.setTimeout(() => setCopied((current) => current === firm.id ? null : current), 1800);
     } else {
-      setNotice(`Copy unavailable. Code: ${firm.code}`);
+      setNotice(`Copy unavailable. Code: ${code}`);
     }
   };
 
@@ -205,7 +206,7 @@ export default function FirmDirectory({ onActivateCashback, onWriteReview }: Fir
               <small>{item === "All" ? activeFirms.length : activeFirms.filter((firm) => firm.market === item).length}</small>
             </button>
           ))}
-          <span className="market-tabs-note"><BadgePercent size={14} /> Every listed firm earns APEX cashback and credits</span>
+          <span className="market-tabs-note"><BadgePercent size={14} /> Every listed firm earns PropApex cashback and credits</span>
         </div>
 
         <div className="directory-toolbar">
@@ -303,7 +304,7 @@ export default function FirmDirectory({ onActivateCashback, onWriteReview }: Fir
                         <td><div className="platform-list">{firm.platforms.slice(0, 3).map((item) => <span key={item}>{item}</span>)}</div></td>
                         <td><div className="allocation-cell"><strong>{firm.allocationLabel}</strong><small>Profit split {firm.profitSplit}</small></div></td>
                         <td>
-                          <div className="promo-cell"><strong>{firm.promo}</strong>{firm.code ? <button onClick={() => handleCopy(firm)}>{copied === firm.id ? <Check size={13} /> : <Copy size={13} />}{copied === firm.id ? "Copied" : firm.code}</button> : <small>See firm details</small>}<button className="cashback-mini-action" onClick={() => onActivateCashback(firm)}><BadgePercent size={12} />{getCashbackRate(firm.id)}% cashback</button></div>
+                          <div className="promo-cell"><strong>{firm.promo}</strong>{(firm.apexCode || firm.code) ? <button onClick={() => handleCopy(firm)}>{copied === firm.id ? <Check size={13} /> : <Copy size={13} />}{copied === firm.id ? "Copied" : firm.apexCode || firm.code}</button> : <small>See firm details</small>}{isAffiliateTrackingReady(firm) ? <button className="cashback-mini-action" onClick={() => onActivateCashback(firm)}><BadgePercent size={12} />{cashbackRateFor(firm)}% PropApex cashback</button> : <small className="tracking-unavailable">Cashback setup in progress</small>}</div>
                         </td>
                         <td>
                           <div className="row-actions">
@@ -335,10 +336,10 @@ export default function FirmDirectory({ onActivateCashback, onWriteReview }: Fir
                       <div><span>Drawdown</span><strong>{firm.drawdown}</strong></div>
                     </div>
                     <div className="platform-list">{firm.platforms.map((item) => <span key={item}>{item}</span>)}</div>
-                    <button className="mobile-reward-action" onClick={() => onActivateCashback(firm)}><BadgePercent size={15} /> Activate {getCashbackRate(firm.id)}% cashback <ArrowUpRight size={14} /></button>
+                    {isAffiliateTrackingReady(firm) ? <button className="mobile-reward-action" onClick={() => onActivateCashback(firm)}><BadgePercent size={15} /> Activate {cashbackRateFor(firm)}% PropApex cashback <ArrowUpRight size={14} /></button> : <p className="mobile-tracking-unavailable">Cashback setup in progress.</p>}
                     <div className="mobile-card-bottom">
                       <button className={`compare-text-button ${isCompared ? "selected" : ""}`} onClick={() => toggleCompare(firm)}><GitCompareArrows size={16} />{isCompared ? "Added" : "Compare"}</button>
-                      {firm.code && <button className="code-button" onClick={() => handleCopy(firm)}>{copied === firm.id ? <Check size={14} /> : <Copy size={14} />}{firm.code}</button>}
+                      {(firm.apexCode || firm.code) && <button className="code-button" onClick={() => handleCopy(firm)}>{copied === firm.id ? <Check size={14} /> : <Copy size={14} />}{firm.apexCode || firm.code}</button>}
                       <button className="view-button" onClick={() => openFirm(firm)}>Details <ArrowRight size={15} /></button>
                     </div>
                   </article>
@@ -409,14 +410,14 @@ export default function FirmDirectory({ onActivateCashback, onWriteReview }: Fir
             <div className="detail-offer">
               <div className="detail-offer-icon"><BadgePercent size={23} /></div>
               <div><p className="eyebrow">OFFER CONTEXT</p><h3>{selectedFirm.promo}</h3><p>{selectedFirm.offerDetails}</p></div>
-              {selectedFirm.code && <button className="copy-code-large" onClick={() => handleCopy(selectedFirm)}><span>Use code</span><strong>{selectedFirm.code}</strong>{copied === selectedFirm.id ? <Check size={17} /> : <Copy size={17} />}</button>}
+              {(selectedFirm.apexCode || selectedFirm.code) && <button className="copy-code-large" onClick={() => handleCopy(selectedFirm)}><span>{selectedFirm.apexCode ? "PropApex code" : "Offer code"}</span><strong>{selectedFirm.apexCode || selectedFirm.code}</strong>{copied === selectedFirm.id ? <Check size={17} /> : <Copy size={17} />}</button>}
             </div>
             <div className="detail-footer">
               <p><ShieldCheck size={16} /> Rules and offers can change. Confirm all terms directly with the firm before purchasing.</p>
               <div className="detail-footer-actions">
                 <button className="detail-review-link" onClick={() => { const firm = selectedFirm; closeFirm(); onWriteReview(firm); }}><Star size={15} /> Write review</button>
                 <button className="button button-outline" onClick={() => toggleCompare(selectedFirm)}><GitCompareArrows size={16} />{compareIds.includes(selectedFirm.id) ? "Remove" : "Compare"}</button>
-                <button className="button button-lime" onClick={() => { const firm = selectedFirm; closeFirm(); onActivateCashback(firm); }}><BadgePercent size={16} /> Earn {getCashbackRate(selectedFirm.id)}% cashback</button>
+                {isAffiliateTrackingReady(selectedFirm) ? <button className="button button-lime" onClick={() => { const firm = selectedFirm; closeFirm(); onActivateCashback(firm); }}><BadgePercent size={16} /> Earn {cashbackRateFor(selectedFirm)}% cashback</button> : <span className="tracking-pending-label">Cashback link coming soon</span>}
               </div>
             </div>
           </div>
@@ -429,7 +430,7 @@ export default function FirmDirectory({ onActivateCashback, onWriteReview }: Fir
             <thead><tr><th>Decision factor</th>{compareFirms.map((firm) => <th key={firm.id}><FirmLogo firm={firm} /><strong>{firm.name}</strong><button onClick={() => openFirm(firm)}>Full details <ArrowUpRight size={13} /></button></th>)}</tr></thead>
             <tbody>
               {[
-                ["APEX rating", (firm: Firm) => `${firm.rating} / 5`],
+                ["PropApex rating", (firm: Firm) => `${firm.rating} / 5`],
                 ["Market", (firm: Firm) => firm.market],
                 ["Max allocation", (firm: Firm) => firm.allocationLabel],
                 ["Profit split", (firm: Firm) => firm.profitSplit],

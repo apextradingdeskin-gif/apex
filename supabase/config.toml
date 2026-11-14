@@ -1,0 +1,2 @@
+[functions.affiliate-postback]
+verify_jwt = false

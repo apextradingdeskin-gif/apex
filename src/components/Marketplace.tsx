@@ -14,23 +14,26 @@ const categoryIcon: Record<RewardCategory, LucideIcon> = {
 type Props = { onRequireAuth: () => void; onNotice: (message: string) => void };
 
 export default function Marketplace({ onRequireAuth, onNotice }: Props) {
-  const { user, credits, redeemItem, platformSettings } = useAccount();
+  const { user, credits, redeemItem, platformSettings, backendConfigured } = useAccount();
   const [category, setCategory] = useState<"All" | RewardCategory>("All");
   const [selected, setSelected] = useState<RewardItem | null>(null);
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const items = useMemo(() => rewardCatalog.filter((item) => category === "All" || item.category === category), [category]);
   const nextGoal = useMemo(() => rewardCatalog.filter((item) => item.cost > credits.available).sort((a, b) => a.cost - b.cost)[0], [credits.available]);
 
   const confirm = async () => {
-    if (!selected || saving) return;
-    setSaving(true);
-    const result = await redeemItem({ id: selected.id, name: selected.name, cost: selected.cost });
-    setSaving(false);
-    if (!result.ok) { setError(result.message); return; }
-    onNotice(result.message);
-    setSelected(null);
+    if (!selected) return;
+    setSubmitting(true);
+    try {
+      const result = await redeemItem({ id: selected.id, name: selected.name, cost: selected.cost });
+      if (!result.ok) { setError(result.message); return; }
+      onNotice(result.message);
+      setSelected(null);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -38,8 +41,8 @@ export default function Marketplace({ onRequireAuth, onNotice }: Props) {
       <div className="market-glow" />
       <div className="container">
         <div className="section-heading market-heading">
-          <div><p className="eyebrow"><span /> APEX MARKETPLACE</p><h2>Turn every purchase<br />into <em>APEX Credits.</em></h2></div>
-          <p>Earn {platformSettings.creditRate} {platformSettings.creditRate === 1 ? "credit" : "credits"} for every $1 of eligible net spend. Once your purchases are verified, redeem credits for challenge credits, trader tools and more.</p>
+          <div><p className="eyebrow"><span /> PropApex MARKETPLACE</p><h2>Turn every purchase<br />into <em>PropApex Credits.</em></h2></div>
+          <p>Earn {platformSettings.creditRate} credit{platformSettings.creditRate === 1 ? "" : "s"} per $1 of eligible net spend. Once your purchases are verified, redeem credits for challenge credits, trader tools and more.</p>
         </div>
 
         <div className="credits-bar">
@@ -68,7 +71,7 @@ export default function Marketplace({ onRequireAuth, onNotice }: Props) {
         </div>
 
         <div className="market-steps">
-          {[["Earn", `${platformSettings.creditRate} credits per $1 of eligible net spend`], ["Verify", "Credits become spendable after purchase approval"], ["Redeem", "Request a reward; credits are reserved instantly"]].map(([title, copy], index) => (
+          {[["Earn", "1 credit per $1 of eligible net spend"], ["Verify", "Credits become spendable after purchase approval"], ["Redeem", "Request a reward; credits are reserved instantly"]].map(([title, copy], index) => (
             <div key={title}><span>0{index + 1}</span><p><strong>{title}</strong>{copy}</p></div>
           ))}
         </div>
@@ -104,10 +107,10 @@ export default function Marketplace({ onRequireAuth, onNotice }: Props) {
           })}
         </div>
 
-        <p className="market-disclaimer"><ShieldCheck size={15} /> Redemption requests and reserved credits are saved to your account. The APEX team confirms partner availability and fulfilment before marking a reward delivered. Credits have no cash value and are not transferable.</p>
+        <p className="market-disclaimer"><ShieldCheck size={15} /> The catalog is a preview. {backendConfigured ? "Redemptions are saved in Supabase and remain requests until an administrator fulfils them." : "Redemptions are saved as requests on this device until the rewards backend is connected."} Fulfilment, availability and partner terms must be confirmed. Credits have no cash value and are not transferable.</p>
       </div>
 
-      <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title="Confirm redemption" eyebrow="APEX MARKETPLACE">
+      <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title="Confirm redemption" eyebrow="PropApex MARKETPLACE">
         {selected && (
           <div className="redeem-modal">
             <div className="redeem-summary"><div className="reward-card-icon"><Coins size={24} /></div><div><h3>{selected.name}</h3><p>{selected.description}</p></div></div>
@@ -119,7 +122,7 @@ export default function Marketplace({ onRequireAuth, onNotice }: Props) {
             {credits.available < selected.cost && <div className="form-error" role="alert">You need {(selected.cost - credits.available).toLocaleString()} more approved credits. Pending credits can’t be spent until the related purchases are verified.</div>}
             {error && <div className="form-error" role="alert">{error}</div>}
             <p className="redeem-note"><ShieldCheck size={14} /> You can cancel a requested redemption from your dashboard to release the credits.</p>
-            <button className="button button-lime redeem-confirm" onClick={confirm} disabled={saving || credits.available < selected.cost}><Check size={16} /> {saving ? "Reserving credits..." : "Confirm redemption"}</button>
+            <button className="button button-lime redeem-confirm" onClick={confirm} disabled={credits.available < selected.cost || submitting}><Check size={16} />{submitting ? "Submitting…" : "Confirm redemption"}</button>
           </div>
         )}
       </Modal>

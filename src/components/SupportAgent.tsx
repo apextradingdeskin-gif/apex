@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import { ArrowUpRight, Bot, ExternalLink, MessageCircle, RotateCcw, SendHorizontal, Sparkles, X } from "lucide-react";
 import { useAccount } from "../context/AccountContext";
 import { answerQuestion, type AssistantAction, type AssistantReply } from "../lib/assistant";
-import { contact, mailto } from "../data/contact";
+import { mailto } from "../data/contact";
 import { DiscordIcon } from "./SocialLinks";
 
 type Message = { id: string; role: "user" | "assistant"; text: string; actions?: AssistantAction[]; suggestions?: string[]; time: number };
 
 type Props = { onOpenAuth: () => void; onTrackPurchase: () => void; onWriteReview: () => void };
 
+const STORAGE_KEY = "apex_assist_transcript_v1";
 const makeId = () => `m_${Math.random().toString(36).slice(2, 10)}`;
 
 function renderRich(text: string): ReactNode[] {
@@ -23,22 +24,28 @@ function renderRich(text: string): ReactNode[] {
 }
 
 export default function SupportAgent({ onOpenAuth, onTrackPurchase, onWriteReview }: Props) {
-  const { user, purchases, credits, firms, platformSettings, cashback } = useAccount();
+  const { user, purchases, credits, firms, payoutRequests, platformSettings } = useAccount();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const lastIdentity = useRef(user?.id);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      return saved ? (JSON.parse(saved) as Message[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<number | null>(null);
 
-  const ctx = useMemo(() => ({ user, purchases, credits, firms, minPayout: platformSettings.minPayout, cashback, creditRate: platformSettings.creditRate }), [user, purchases, credits, firms, platformSettings.minPayout, platformSettings.creditRate, cashback]);
+  const ctx = useMemo(() => ({ user, purchases, credits, payoutRequests, payoutMethods: platformSettings.payoutMethods, firms, minPayout: platformSettings.minPayout, social: platformSettings }), [user, purchases, credits, payoutRequests, platformSettings, firms]);
 
   const welcome = useCallback((): Message => ({
     id: makeId(), role: "assistant", time: Date.now(),
-    text: `Hi${user ? ` ${user.name.split(" ")[0]}` : ""}, I'm **APEX Assist** — an automated assistant that answers from APEX's help content and your account. Ask me about cashback, credits, any listed firm, or the tools. If I can't help, I'll connect you with the team.`,
+    text: `Hi${user ? ` ${user.name.split(" ")[0]}` : ""}, I'm **PropApex Assist** — an automated assistant that answers from PropApex's help content and your account. Ask me about cashback, credits, any listed firm, or the tools. If I can't help, I'll connect you with the team.`,
     suggestions: ["How does cashback work?", "Which firm has the best cashback?", "What's my purchase status?", "Talk to a human"],
   }), [user]);
 
@@ -47,12 +54,8 @@ export default function SupportAgent({ onOpenAuth, onTrackPurchase, onWriteRevie
   }, [messages.length, welcome]);
 
   useEffect(() => {
-    if (lastIdentity.current !== user?.id) {
-      lastIdentity.current = user?.id;
-      if (timerRef.current) window.clearTimeout(timerRef.current);
-      setTyping(false); setMessages([welcome()]); setInput("");
-    }
-  }, [user?.id, welcome]);
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-60))); } catch { /* storage unavailable */ }
+  }, [messages]);
 
   useEffect(() => {
     if (!open) return;
@@ -76,7 +79,7 @@ export default function SupportAgent({ onOpenAuth, onTrackPurchase, onWriteRevie
   useEffect(() => () => { if (timerRef.current) window.clearTimeout(timerRef.current); }, []);
 
   const transcriptForEmail = () =>
-    messages.slice(-12).map((message) => `${message.role === "user" ? "Me" : "APEX Assist"}: ${message.text.replace(/\*\*/g, "").replace(/\n/g, "\n   ")}`).join("\n\n");
+    messages.slice(-12).map((message) => `${message.role === "user" ? "Me" : "PropApex Assist"}: ${message.text.replace(/\*\*/g, "").replace(/\n/g, "\n   ")}`).join("\n\n");
 
   const handleAction = (action: AssistantAction) => {
     if (action.type === "link") {
@@ -85,8 +88,8 @@ export default function SupportAgent({ onOpenAuth, onTrackPurchase, onWriteRevie
       return;
     }
     if (action.event === "human") {
-      const body = `Hi APEX team,\n\n[Describe your question here]\n\n---\nMember: ${user ? `${user.name} (${user.email}) · ID ${user.id}` : "Guest"}\nRecent chat with APEX Assist:\n\n${transcriptForEmail()}`;
-      window.location.href = mailto("Support request via APEX Assist", body);
+      const body = `Hi PropApex team,\n\n[Describe your question here]\n\n---\nMember: ${user ? `${user.name} (${user.email}) · ID ${user.id}` : "Guest"}\nRecent chat with PropApex Assist:\n\n${transcriptForEmail()}`;
+      window.location.href = mailto("Support request via PropApex Assist", body, platformSettings.supportEmail);
       return;
     }
     setOpen(false);
@@ -118,16 +121,16 @@ export default function SupportAgent({ onOpenAuth, onTrackPurchase, onWriteRevie
 
   return (
     <>
-      <button className={`assist-launcher ${open ? "is-open" : ""}`} onClick={() => setOpen((value) => !value)} aria-label={open ? "Close APEX Assist" : "Open APEX Assist support chat"} aria-expanded={open}>
+      <button className={`assist-launcher ${open ? "is-open" : ""}`} onClick={() => setOpen((value) => !value)} aria-label={open ? "Close PropApex Assist" : "Open PropApex Assist support chat"} aria-expanded={open}>
         <span className="assist-launcher-icon">{open ? <X size={22} /> : <MessageCircle size={22} />}</span>
-        {!open && <span className="assist-launcher-label">Ask APEX</span>}
+        {!open && <span className="assist-launcher-label">Ask PropApex</span>}
         {!open && unread > 0 && <span className="assist-unread">{unread}</span>}
       </button>
 
-      <section className={`assist-panel ${open ? "is-open" : ""}`} role="dialog" aria-label="APEX Assist support chat" aria-hidden={!open}>
+      <section className={`assist-panel ${open ? "is-open" : ""}`} role="dialog" aria-label="PropApex Assist support chat" aria-hidden={!open}>
         <header className="assist-header">
           <div className="assist-avatar"><Bot size={20} /><span className="assist-online" /></div>
-          <div className="assist-title"><strong>APEX Assist</strong><small><Sparkles size={10} /> Automated assistant · answers in seconds</small></div>
+          <div className="assist-title"><strong>PropApex Assist</strong><small><Sparkles size={10} /> Automated assistant · answers in seconds</small></div>
           <button className="assist-icon-btn" onClick={reset} aria-label="Start a new conversation" title="New conversation"><RotateCcw size={16} /></button>
           <button className="assist-icon-btn" onClick={() => setOpen(false)} aria-label="Close chat"><X size={18} /></button>
         </header>
@@ -171,8 +174,8 @@ export default function SupportAgent({ onOpenAuth, onTrackPurchase, onWriteRevie
           <button type="submit" disabled={!input.trim() || typing} aria-label="Send"><SendHorizontal size={17} /></button>
         </form>
         <footer className="assist-footer">
-          <span>Not financial advice. Account questions may be escalated to <a href={`mailto:${contact.email}`}>{contact.email}</a>.</span>
-          {contact.discord && <a href={contact.discord} target="_blank" rel="noreferrer"><DiscordIcon size={12} /> Discord</a>}
+          <span>Not financial advice. Account questions may be escalated to <a href={`mailto:${platformSettings.supportEmail}`}>{platformSettings.supportEmail}</a>.</span>
+          <a href={platformSettings.socialDiscord} target="_blank" rel="noreferrer"><DiscordIcon size={12} /> Discord</a>
         </footer>
       </section>
     </>
