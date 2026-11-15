@@ -1,116 +1,62 @@
-# APEX TRADING Website
+# Apex Trading Community — milestone 2 (marketplace, calculator, admin partners & rewards)
 
-The React website and Express API run together on one origin. Accounts, sessions,
-firm listings, purchases, reviews, credits, redemptions, uploaded logos and audit
-events persist in local SQLite or Supabase Postgres. Browser storage is only for non-sensitive
-preferences and unsaved image drafts.
+## Verification status — read this first
+| Check | Result |
+|---|---|
+| Credits estimator unit tests (`npm run test:unit`, 7 tests) | **Executed, 7/7 passed** (Node 22) |
+| Syntax parse of all 29 `.ts/.tsx` files | **Executed, 0 syntax errors** (this is NOT a type check) |
+| `scripts/verify.sh` and `concurrent-redeem.mjs` syntax | **Executed** (`bash -n`, `node --check`) |
+| Apply migrations 0001–0004 to a clean Supabase project | **NOT RUN** — no Postgres or network in the authoring sandbox |
+| `ledger.test.sql`, `e2e_workflow.test.sql` | **NOT RUN** |
+| `concurrent-redeem.mjs` (8 parallel redemptions) | **NOT RUN** |
+| `npm install`, `tsc`, ESLint, `next build` | **NOT RUN** |
+| Member vs admin permission tests against a live database | **NOT RUN** (written into `e2e_workflow.test.sql`) |
 
-## Run Locally
+**One command runs every unexecuted step in order:** `DATABASE_URL=<clean dev db> npm run verify`.
+Expect to fix some errors on the first run — the SQL and TSX have never been compiled or executed. Send me the output and I will fix them.
 
-1. Install dependencies with `npm install`.
-2. Copy `.env.example` to `.env` and choose a persistent `DATABASE_PATH`.
-3. Start the website and API with `npm run dev`.
-4. Open `http://localhost:5173`.
+## What this milestone added
+- `0004_marketplace_admin.sql`: configurable earning rules (`credit_cap`, `credit_conditions`), DB-level audit triggers on catalogue/reward tables, public `partner-logos` / `reward-images` buckets with permission-checked writes, `partner_has_link()`.
+- Marketplace: `/marketplace`, `/marketplace/[category]` (search, sort, Forex/Crypto/Futures/Perps filter on prop firms, featured first), `/marketplace/[category]/[slug]` (logo, codes, offers table, estimated credits, terms, tracked referral button via `/go/[partnerId]`). Gift cards list the reward catalogue.
+- `/credits-calculator`: reads offers from Supabase, shows discount, estimated credits, step-by-step explanation, conditions and disclaimer. It never writes credits. Rules are edited in admin; the same `estimateCredits()` function feeds the submission form.
+- Admin: `/admin/partners` (+ `[id]`: edit, logo upload, feature, archive/restore, offers & earning rules, discount codes, referral links), `/admin/categories`, `/admin/rewards` (create/edit, image upload, INR/USD, cost, stock, active, region label, redemption queue with fulfil / processing / reject-and-refund through the existing `fulfill_redemption`).
+- Tests: `tests/credits.test.ts`, `supabase/tests/e2e_workflow.test.sql` (all 15 workflow steps plus rejection, insufficient credits, duplicates, unauthorized operations, moderator isolation, refund-once, ledger immutability), `scripts/concurrent-redeem.mjs`.
 
-If the site displays an account connection warning, keep the server terminal
-open and run `npm run doctor` in a second terminal. See
-[Account Connection Help](docs/CONNECTION_TROUBLESHOOTING.md).
+## Unresolved issues
+1. Nothing above the "executed" rows has been run (see table).
+2. "Delete partner" is an archive (`active=false`) because submissions and clicks reference partners.
+3. Reward `region` is a display label only; redemption is not restricted by member country yet.
+4. `partners.commission_info` UI is not built (table `partner_private` exists, staff-only).
+5. Marketplace sort by credits/discount is computed in the app after fetching the category (fine for hundreds of partners, not thousands).
+6. Gift Cards marketplace page shows rewards, but there is no per-reward detail page.
+7. Member resubmission after "more info required", proof-upload retry, onboarding, password reset, notifications UI and the earlier "Not built yet" list are still open.
+8. Admin pages gate on `partners.manage` / `rewards.manage` / `redemptions.process`; the submissions queue page still only requires any staff role at the layout level (the database functions enforce `submissions.review`).
+9. The concurrency script cannot clean up after itself (the ledger is append-only); use a disposable database.
 
-### Windows PowerShell
+## Setup
+1. Create a Supabase project. Copy `.env.example` → `.env.local` and fill in the values.
+2. Apply migrations in order with the SQL editor or `supabase db push`. Run `0002` as the project owner (it creates a trigger on `auth.users`).
+3. Dev only: run `supabase/seed.sql`.
+4. Auth settings: enable "Confirm email"; set Site URL and redirect URLs; add rate limits; add Google provider if wanted.
+5. `npm install && npm run dev`.
+6. First admin (no credentials in code): sign up normally, then in the SQL editor:
+   `insert into user_roles(user_id, role_id) select '<your-user-uuid>', id from roles where key='super_admin';`
+7. Verify everything: `DATABASE_URL=<clean dev db> npm run verify` (applies migrations, seeds, runs SQL + concurrency tests, installs, type-checks, lints, builds).
 
-Use a current Node.js LTS release and open PowerShell inside the extracted
-project folder. Install dependencies before starting the website:
+## Key design decisions
+- **Money is only written by SECURITY DEFINER functions.** Browser roles have no INSERT/UPDATE on `credit_ledger`, `wallet_balance_cache`, `redemptions`.
+- **Ledger is append-only** (trigger blocks UPDATE/DELETE/TRUNCATE). Corrections are reversal rows; an entry can be reversed once (unique idempotency key).
+- **Overdraft is blocked by the database** (`wallet_balance_cache.balance >= 0` CHECK, row-locked upsert). `wallet_cache_drift()` should always return zero rows.
+- **Duplicate claims:** `unique(partner_id, order_id)` plus a status guard under `FOR UPDATE` in `award_submission`.
+- **Affiliate URLs are not publicly readable**; visitors go through `record_affiliate_click`, which logs the click.
+- **Moderators get no financial or user-data permissions** by default; see `role_permissions` in `0002`.
+- **Reward pools / raffles are not implemented**; `feature_flags.reward_pools` is seeded `false`. Do not enable without legal approval.
+- Credits are *requested* from the offer rule at submission time, but staff set the final amount at approval.
 
-```powershell
-npm install --include=dev
-npm run dev
-```
-
-Wait for installation to finish successfully. Do not install Vite globally.
-If installation fails, resolve that error before trying to start the site.
-
-If `npm run dev` prints `> vite`, your folder contains an older frontend-only
-version. Download the latest backend-enabled project, which includes
-`server/index.mjs` and the `admin:create` script. Its development command prints
-`> node server/index.mjs`.
-
-Before starting the server, you can create your owner account by running
-`npm run admin:create`. If the server is already running, use a second terminal
-in the same project folder. Then open `http://localhost:5173/admin`.
-
-Normal registrations always create **member** accounts. Old browser-only demo
-accounts and admin flags are not trusted or automatically migrated. Register a
-new member account after upgrading.
-
-## Provision The Owner
-
-Run `npm run admin:create` on the server. It asks for the administrator email
-and a unique password of at least 12 characters. The interactive password input
-is visible, so run it from a private terminal. For automation, supply
-`APEX_ADMIN_EMAIL`, `APEX_ADMIN_PASSWORD` and optionally `APEX_ADMIN_NAME`
-through the server environment instead. Never use a `VITE_` variable for secrets.
-
-Then open `/admin` and sign in. There is **no public admin-setup endpoint**.
-An existing owner can assign another member the admin role. A member cannot
-promote themselves, approve purchases, change rates, upload media, or export
-private data. The server rejects those requests even if the UI is modified.
-Rerun the provisioning command to reset an owner's password from the server.
-
-## Logos
-
-In **Admin > Settings & data > Website branding**, choose an image, drag it
-into the picker, or copy an actual image and press Ctrl+V / Cmd+V inside the
-picker. The Paste Image button also works when clipboard permission is granted.
-An instant preview and a recoverable local draft appear before saving.
-
-Choose **Save website logo** to upload it to the backend. Firm editors provide
-the same picker. PNG, JPEG and WebP are accepted up to 4 MB. The backend verifies
-the actual image bytes, limits dimensions, strips metadata and saves a WebP
-image in the database. No third-party image link is necessary.
-
-## Production
-
-For your Supabase project, follow [Supabase Setup](docs/SUPABASE_SETUP.md).
-The supplied public project API is reachable, but cloud database activation
-requires `SUPABASE_DB_URL` from the Connect dialog and a server encryption key.
-The secret key shared in chat is not used or stored; rotate it before launch.
-
-- Build with `npm run build` and run `npm start`.
-- `npm run preview` also runs the backend, on port 4173 by default.
-- Set `PORT`, `DATABASE_PATH` and `PUBLIC_ORIGIN=https://your-domain.com`.
-- Serve over HTTPS. Production sessions use Secure, HTTP-only, SameSite cookies.
-- If a trusted reverse proxy terminates HTTPS, set `TRUST_PROXY=1`.
-- In SQLite mode, keep the database and payout-key file on a persistent private disk, not an ephemeral deployment
-  filesystem. This setup is intended for a single application instance.
-- Back up the SQLite database and its media. A consistent online backup can be
-  created using SQLite's backup tooling. The admin JSON export is a sanitized
-  operations report, not an authentication backup.
-- Firm-catalog imports are validated and never create users or change roles.
-- The website cannot be hosted as static HTML alone: `/api` must reach this
-  server. `npm start` serves the built website and API together.
-
-Members can submit payout requests directly on the website; the admin payout
-desk manages reservations, review and recorded payment references. Actual fund
-transfers remain a human operation. No payment processor is configured.
-
-Partner sales can be reconciled manually or received through the signed webhook
-contract. Automatic reporting requires the real firm's affiliate URL and an
-adapter/postback configured by that partner. Merely showing a coupon or recording
-a click does not confirm a purchase. See [Partner Tracking](docs/PARTNER_TRACKING.md)
-for setup, signature details, payout rules and editable social settings.
-
-No email-delivery provider is configured.
-APEX Assist remains a site-knowledge automated helper, not an external LLM.
-
-## Verification
-
-- `npm run test:backend`: permission boundaries, session security, private-data
-  isolation, cashback calculations, redemptions, image validation, moderation,
-  and persistence after restart.
-- `npx tsc --noEmit`: frontend type checking.
-- `npm run build`: production website build.
-- `npm run db:migrate`: create the private application schema in the configured Supabase database.
-- `npm run doctor`: inspect account API connectivity without printing secrets.
-- `npm run test:browser`: Chromium checks for member restrictions, admin login,
-  image upload/paste, local draft recovery and branding persistence. Install the
-  browser once with `npx playwright install --with-deps chromium`.
+## Known gaps to review
+- Members cannot yet edit a submission after "more info required" (needs a resubmit function).
+- Proof upload happens after the submission row; if upload fails the member must retry (add cleanup/retry).
+- Username availability check in `register` is racy; the UNIQUE constraint is the real guard and its error should be surfaced.
+- Rate limiting: rely on Supabase Auth limits now; add Upstash or similar for server actions.
+- `site_settings` is publicly readable — never store secrets there.
+- Regulatory review needed for affiliate disclosure, rewards terms, and any chance-based feature in IN/US.
