@@ -190,6 +190,17 @@ export default function App() {
   const { user, firms, platformSettings, backendConfigured, backendStatus, backendError } = useAccount();
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  useEffect(() => {
+    const openRecovery = () => {
+      if (window.location.hash.includes("type=recovery")) {
+        setAuthMode("login");
+        setAuthOpen(true);
+      }
+    };
+    openRecovery();
+    window.addEventListener("hashchange", openRecovery);
+    return () => window.removeEventListener("hashchange", openRecovery);
+  }, []);
   const [route, setRoute] = useState<"home" | "dashboard" | "admin">(() => window.location.hash.startsWith("#admin") ? "admin" : window.location.hash === "#dashboard" ? "dashboard" : "home");
   const isDashboard = route === "dashboard";
   const isAdmin = route === "admin";
