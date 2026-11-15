@@ -35,6 +35,67 @@ export default function AuthModal({ open, mode, onModeChange, onClose, onSuccess
     setTerms(false);
   }, [mode, open]);
 
+  const requestPasswordReset = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+    const cleanEmail = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      setError("Enter the email address linked to your account.");
+      return;
+    }
+    if (!supabase) {
+      setError("Password reset is unavailable until Supabase is configured.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/`,
+      });
+      if (resetError) setError(resetError.message);
+      else setNotice("If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
+    } catch {
+      setError("Could not send the reset email. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveNewPassword = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+    if (password.length < 8) {
+      setError("Use at least 8 characters for your new password.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("The passwords do not match.");
+      return;
+    }
+    if (!supabase) {
+      setError("Password update is unavailable until Supabase is configured.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) setError(updateError.message);
+      else {
+        setPassword("");
+        setConfirm("");
+        setNotice("Your password has been updated. You can now log in with your new password.");
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        setView("auth");
+      }
+    } catch {
+      setError("Could not update your password. Please open the latest reset link and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
