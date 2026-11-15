@@ -1,7 +1,0 @@
-{
-  "/marketplace/[category]/[slug]/page": "app/marketplace/[category]/[slug]/page.js",
-  "/page": "app/page.js",
-  "/go/[partnerId]/route": "app/go/[partnerId]/route.js",
-  "/marketplace/[category]/page": "app/marketplace/[category]/page.js",
-  "/credits-calculator/page": "app/credits-calculator/page.js"
-}
