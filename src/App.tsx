@@ -188,6 +188,8 @@ function FAQSection() {
 
 export default function App() {
   const { user, firms, platformSettings, backendConfigured, backendStatus, backendError } = useAccount();
+  // Only active firms belong in public-facing counts and the trusted-firm marquee.
+  const activeFirms = firms.filter((firm) => firm.status !== "archived");
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   useEffect(() => {
@@ -322,7 +324,7 @@ export default function App() {
               </Suspense>
               <div className="floating-panel floating-panel-top">
                 <span className="floating-icon"><GitCompareArrows size={17} /></span>
-                <div><strong>{firms.length} firms. One clear view.</strong><small>Compare what actually matters</small></div>
+                <div><strong>{activeFirms.length} firms. One clear view.</strong><small>Compare what actually matters</small></div>
               </div>
               <div className="floating-panel floating-panel-bottom">
                 <span className="floating-icon"><ShieldCheck size={17} /></span>
@@ -334,7 +336,7 @@ export default function App() {
           <div className="container hero-bottom">
             <a href="#reviews" className="scroll-cue"><span><ArrowDown size={15} /></span> Scroll to discover</a>
             <div className="hero-micro-stats">
-              <div><strong>{firms.length}</strong><span>Firms to explore</span></div>
+              <div><strong>{activeFirms.length}</strong><span>Firms to explore</span></div>
               <div><strong>8%</strong><span>Maximum cashback rate</span></div>
               <div><strong>02</strong><span>Market categories</span></div>
             </div>
@@ -349,8 +351,8 @@ export default function App() {
           </div>
           <div className="logo-marquee" aria-label="Featured prop firms">
             <div className="logo-marquee-track">
-              {[...firms.slice(0, 10), ...firms.slice(0, 10)].map((firm, index) => (
-                <a href={`#firm-${firm.id}`} className="marquee-firm" key={`${firm.id}-${index}`} aria-hidden={index >= 10} tabIndex={index >= 10 ? -1 : 0}>
+              {[...activeFirms, ...activeFirms].map((firm, index) => (
+                <a href={`#firm-${firm.id}`} className="marquee-firm" key={`${firm.id}-${index}`} aria-hidden={index >= activeFirms.length} tabIndex={index >= activeFirms.length ? -1 : 0}>
                   <FirmLogo firm={firm} /><span>{firm.name}</span>{firm.verified && <BadgeCheck size={14} />}
                 </a>
               ))}
@@ -399,7 +401,7 @@ export default function App() {
                 <div className="comparison-card-head"><span className="comparison-symbol"><Zap size={23} /></span><div><h3>PropApex TRADING</h3><p>The smart way</p></div><span className="recommended-badge"><Sparkles size={12} /> RECOMMENDED</span></div>
                 <div className="apex-benefit-list">
                   {[
-                    [GitCompareArrows, "Smart Firm Comparison", "Compare account rules and value in one view", `${firms.length} firms covered`],
+                    [GitCompareArrows, "Smart Firm Comparison", "Compare account rules and value in one view", `${activeFirms.length} firms covered`],
                     [BadgePercent, "Offer Context", "See codes alongside eligibility reminders", "Rule fit first"],
                     [SearchCheck, "Structured Research", "Consistent metrics across every listing", "Official links"],
                     [ShieldCheck, "Risk-Aware Discovery", "Drawdown and payout context stay visible", "Informed choice"],

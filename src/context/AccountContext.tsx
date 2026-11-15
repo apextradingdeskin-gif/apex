@@ -241,12 +241,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           const payload = row.payload && typeof row.payload === "object" ? row.payload as Firm : {} as Firm;
           return { ...payload, id: row.id, status: row.status, cashbackRate: Number(row.cashback_rate) } as Firm;
         });
-        if (remoteFirms.length) {
-          const overrides = new Map(remoteFirms.map((firm) => [firm.id, firm]));
-          const remoteIds = new Set(remoteFirms.map((firm) => firm.id));
-          const merged = [...remoteFirms, ...seedFirms.filter((firm) => !remoteIds.has(firm.id)).map((firm) => overrides.get(firm.id) ?? firm)];
-          setFirmList(merged);
-        }
+        // Supabase is the source of truth when configured. Do not merge deleted
+        // database rows back from seedFirms: that made removed firms reappear.
+        setFirmList(remoteFirms);
         const settingValue = (key: string) => (settingsResult.data ?? []).find((item) => item.key === key)?.value;
         const toBoolean = (value: unknown, fallback: boolean) => typeof value === "boolean" ? value : fallback;
         const toNumber = (value: unknown, fallback: number) => typeof value === "number" ? value : Number(value) || fallback;
