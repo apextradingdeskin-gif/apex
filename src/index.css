@@ -147,10 +147,9 @@ section[id], div[id] { scroll-margin-top: 116px; }
 .trust-heading h2, .section-heading h2, .faq-intro h2 { margin: 0; font-family: "Space Grotesk", sans-serif; font-size: clamp(36px, 4vw, 55px); line-height: 1.07; font-weight: 500; letter-spacing: -.045em; }
 .trust-heading h2 em, .section-heading h2 em, .faq-intro h2 em { color: var(--lime); font-style: normal; font-weight: 500; }
 .trust-heading > p:last-child { margin: 17px 0 0; color: var(--muted); font-size: 14.2px; }
-.logo-marquee { margin-top: 43px; overflow: hidden; mask-image: linear-gradient(90deg, transparent, black 9%, black 91%, transparent); }
-.logo-marquee-track { display: flex; gap: 12px; width: max-content; padding: 5px 0; animation: marquee 42s linear infinite; }
-.logo-marquee:hover .logo-marquee-track { animation-play-state: paused; }
-@keyframes marquee { to { transform: translateX(calc(-50% - 6px)); } }
+.logo-marquee { margin: 43px auto 0; width: calc(100% - 40px); max-width: 1180px; overflow: visible; }
+.logo-marquee-track { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 218px), 218px)); justify-content: center; align-items: stretch; gap: 14px; width: 100%; padding: 5px 0; }
+.featured-firms-empty { grid-column: 1 / -1; margin: 0; color: var(--muted); text-align: center; font-size: 13px; }
 .marquee-firm { display: flex; align-items: center; justify-content: center; gap: 11px; width: 218px; height: 70px; flex: 0 0 auto; color: #b5beac; border: 1px solid var(--line); border-radius: 13px; background: #0f130e; font-size: 13px; font-weight: 700; transition: transform .25s, border-color .25s, color .25s; transform: perspective(500px) rotateX(2deg); }
 .marquee-firm:hover { color: var(--text); border-color: var(--line-strong); transform: perspective(500px) rotateX(-3deg) translateY(-3px); }
 .marquee-firm > svg { color: var(--lime); }
@@ -638,6 +637,6 @@ section[id], div[id] { scroll-margin-top: 116px; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .logo-marquee-track { animation: none; }
-  .logo-marquee { overflow-x: auto; mask-image: none; }
+  .logo-marquee { overflow: visible; mask-image: none; }
   .tilt-card { transform: none !important; }
 }

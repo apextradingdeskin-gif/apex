@@ -27,6 +27,7 @@ export type Firm = {
   summary: string;
   cashbackRate?: number;
   status?: "active" | "archived";
+  featured?: boolean;
   affiliateUrl?: string;
   affiliateClickParam?: string;
   apexCode?: string;

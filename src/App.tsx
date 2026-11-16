@@ -190,6 +190,8 @@ export default function App() {
   const { user, firms, platformSettings, backendConfigured, backendStatus, backendError } = useAccount();
   // Only active firms belong in public-facing counts and the trusted-firm marquee.
   const activeFirms = firms.filter((firm) => firm.status !== "archived");
+  // The5ers remains featured for older records until the admin explicitly changes it.
+  const featuredFirms = activeFirms.filter((firm) => firm.featured ?? firm.id === "the5ers");
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   useEffect(() => {
@@ -351,11 +353,12 @@ export default function App() {
           </div>
           <div className="logo-marquee" aria-label="Featured prop firms">
             <div className="logo-marquee-track">
-              {[...activeFirms, ...activeFirms].map((firm, index) => (
-                <a href={`#firm-${firm.id}`} className="marquee-firm" key={`${firm.id}-${index}`} aria-hidden={index >= activeFirms.length} tabIndex={index >= activeFirms.length ? -1 : 0}>
+              {featuredFirms.map((firm) => (
+                <a href={`#firm-${firm.id}`} className="marquee-firm" key={firm.id}>
                   <FirmLogo firm={firm} /><span>{firm.name}</span>{firm.verified && <BadgeCheck size={14} />}
                 </a>
               ))}
+              {featuredFirms.length === 0 && <p className="featured-firms-empty">Featured firms will appear here.</p>}
             </div>
           </div>
           <div className="container trust-principles">
