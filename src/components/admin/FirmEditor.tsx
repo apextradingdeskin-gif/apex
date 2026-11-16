@@ -9,7 +9,7 @@ const blankFirm: Firm = {
   assets: ["Forex"], market: "Forex", platforms: ["MT5"], allocation: 100000, allocationLabel: "$100K",
   profitSplit: "Up to 90%", leverage: "1:100", drawdown: "Model-specific", payout: "Every 14 days", promo: "Cashback available",
   offerDetails: "Confirm the current promotion and eligibility on the official firm website.", website: "", color: "#72e7ff",
-  verified: false, featuredInOfferDesk: false, models: ["2 Step"], summary: "", cashbackRate: 5, status: "active", affiliateClickParam: "sub_id",
+  verified: false, featured: false, models: ["2 Step"], summary: "", cashbackRate: 5, status: "active", affiliateClickParam: "sub_id",
 };
 
 export default function FirmEditor({ firm, onClose, onSave }: { firm: Firm | null | undefined; onClose: () => void; onSave: (firm: Firm) => void }) {
@@ -87,7 +87,7 @@ export default function FirmEditor({ firm, onClose, onSave }: { firm: Firm | nul
         <label><span>Your PropApex promo code</span><input value={draft.apexCode ?? ""} onChange={(e) => update("apexCode", e.target.value)} placeholder="Only if the firm assigned one" /></label>
         <label><span>Brand color</span><input type="color" value={draft.color} onChange={(e) => update("color", e.target.value)} /></label>
         <label className="admin-check"><input type="checkbox" checked={draft.verified} onChange={(e) => update("verified", e.target.checked)} /><span>Mark as listed & reviewed</span></label>
-        <label className="admin-check"><input type="checkbox" checked={Boolean(draft.featuredInOfferDesk)} onChange={(e) => update("featuredInOfferDesk", e.target.checked)} /><span>Show in Offer Desk (public directory)</span></label>
+        <label className="admin-check"><input type="checkbox" checked={draft.featured ?? (draft.id === "the5ers")} onChange={(e) => update("featured", e.target.checked)} /><span>Show in Top Trusted section</span></label>
         <label className="span-2"><span>Platforms (comma separated)</span><input value={draft.platforms.join(", ")} onChange={(e) => list("platforms", e.target.value)} /></label>
         <label className="span-2"><span>Assets (comma separated)</span><input value={draft.assets.join(", ")} onChange={(e) => list("assets", e.target.value)} /></label>
         <label className="span-2"><span>Account models (comma separated)</span><input value={draft.models.join(", ")} onChange={(e) => list("models", e.target.value)} /></label>

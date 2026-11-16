@@ -190,6 +190,23 @@ export default function App() {
   const { user, firms, platformSettings, backendConfigured, backendStatus, backendError } = useAccount();
   // Only active firms belong in public-facing counts and the trusted-firm marquee.
   const activeFirms = firms.filter((firm) => firm.status !== "archived");
+  // Legacy The5ers records stay featured unless an admin explicitly switches them off.
+  // Deduplicate by normalized firm name so repeated records never create duplicate cards.
+  const featuredFirms = (() => {
+    const seen = new Set<string>();
+    const selected = activeFirms.filter((firm) => {
+      const isFeatured = firm.featured === true || (firm.featured === undefined && firm.id === "the5ers");
+      const key = firm.name.trim().toLowerCase().replace(/\\s+/g, " ");
+      if (!isFeatured || !key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const five = selected.find((firm) => firm.id === "the5ers" || firm.name.trim().toLowerCase() === "the5ers");
+    if (!five || selected.length < 2) return selected;
+    const rest = selected.filter((firm) => firm.id !== five.id);
+    rest.splice(Math.floor(rest.length / 2), 0, five);
+    return rest;
+  })();
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   useEffect(() => {
@@ -351,8 +368,8 @@ export default function App() {
           </div>
           <div className="logo-marquee" aria-label="Featured prop firms">
             <div className="logo-marquee-track">
-              {[...activeFirms, ...activeFirms].map((firm, index) => (
-                <a href={`#firm-${firm.id}`} className="marquee-firm" key={`${firm.id}-${index}`} aria-hidden={index >= activeFirms.length} tabIndex={index >= activeFirms.length ? -1 : 0}>
+              {featuredFirms.map((firm) => (
+                <a href={`#firm-${firm.id}`} className="marquee-firm" key={firm.id}>
                   <FirmLogo firm={firm} /><span>{firm.name}</span>{firm.verified && <BadgeCheck size={14} />}
                 </a>
               ))}
