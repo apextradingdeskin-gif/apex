@@ -1,0 +1,12 @@
+PropApex featured firms layout fix
+
+Files changed:
+- src/App.tsx: Top Trusted section now renders only active featured firms, defaults The5ers as featured for older records, and deduplicates by firm name.
+- src/index.css: Replaced the moving left-aligned marquee with a centered responsive grid. One card centers; multiple cards sit side-by-side and wrap on smaller screens.
+- src/data/firms.ts: Added the optional featured property to the Firm type.
+- src/components/admin/FirmEditor.tsx: Added the "Show in Top Trusted section" checkbox. The5ers defaults to selected for older records; new firms default off and can be selected.
+
+Important:
+- Keep your existing .env.local file locally; it is intentionally excluded from this ZIP.
+- node_modules is intentionally excluded; install dependencies with npm ci before local build.
+- A build could not be run in this environment because npm dependencies were unavailable and npm install timed out. Please check the Cloudflare/Netlify build log after pushing these files.

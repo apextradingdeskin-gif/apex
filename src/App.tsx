@@ -190,8 +190,14 @@ export default function App() {
   const { user, firms, platformSettings, backendConfigured, backendStatus, backendError } = useAccount();
   // Only active firms belong in public-facing counts and the trusted-firm marquee.
   const activeFirms = firms.filter((firm) => firm.status !== "archived");
-  // The5ers remains featured for older records until the admin explicitly changes it.
-  const featuredFirms = activeFirms.filter((firm) => firm.featured ?? firm.id === "the5ers");
+  // The5ers is the initial featured firm; admins can feature any active firm.
+  const featuredFirms = Array.from(
+    new Map(
+      activeFirms
+        .filter((firm) => firm.featured ?? firm.id === "the5ers")
+        .map((firm) => [firm.name.trim().toLowerCase(), firm]),
+    ).values(),
+  );
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   useEffect(() => {
