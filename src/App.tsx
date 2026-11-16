@@ -188,9 +188,8 @@ function FAQSection() {
 
 export default function App() {
   const { user, firms, platformSettings, backendConfigured, backendStatus, backendError } = useAccount();
-  // Public directory counts include all active firms; TOP TRUSTED is an explicit admin selection.
+  // Only active firms belong in public-facing counts and the trusted-firm marquee.
   const activeFirms = firms.filter((firm) => firm.status !== "archived");
-  const featuredFirms = activeFirms.filter((firm) => firm.featured ?? firm.id === "the5ers");
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   useEffect(() => {
@@ -352,8 +351,8 @@ export default function App() {
           </div>
           <div className="logo-marquee" aria-label="Featured prop firms">
             <div className="logo-marquee-track">
-              {featuredFirms.map((firm) => (
-                <a href={`#firm-${firm.id}`} className="marquee-firm" key={firm.id}>
+              {[...activeFirms, ...activeFirms].map((firm, index) => (
+                <a href={`#firm-${firm.id}`} className="marquee-firm" key={`${firm.id}-${index}`} aria-hidden={index >= activeFirms.length} tabIndex={index >= activeFirms.length ? -1 : 0}>
                   <FirmLogo firm={firm} /><span>{firm.name}</span>{firm.verified && <BadgeCheck size={14} />}
                 </a>
               ))}

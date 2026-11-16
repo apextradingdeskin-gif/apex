@@ -27,11 +27,10 @@ export type Firm = {
   summary: string;
   cashbackRate?: number;
   status?: "active" | "archived";
-  /** Show this firm in the homepage TOP TRUSTED section. */
-  featured?: boolean;
   affiliateUrl?: string;
   affiliateClickParam?: string;
   apexCode?: string;
+  featuredInOfferDesk?: boolean;
 };
 
 export const isAffiliateTrackingReady = (firm: Pick<Firm, "affiliateUrl" | "apexCode">) => Boolean(firm.affiliateUrl?.trim() || firm.apexCode?.trim());
@@ -62,6 +61,7 @@ export const firms: Firm[] = [
     website: "https://sharkfunded.com/",
     color: "#d2ff52",
     verified: true,
+    featuredInOfferDesk: true,
     models: ["1 Step", "2 Step", "Shark Bolt"],
     summary: "A multi-model evaluation firm with MT5 and Match-Trader access. Compare drawdown and payout conditions by model rather than relying on the headline discount.",
   },
@@ -88,6 +88,7 @@ export const firms: Firm[] = [
     website: "https://the5ers.com/",
     color: "#86e7ff",
     verified: true,
+    featuredInOfferDesk: true,
     models: ["Hyper Growth", "High Stakes", "Bootcamp"],
     summary: "An established forex funding brand known for multiple growth paths. Its scaling potential is useful only when the chosen programme’s risk limits fit your strategy.",
   },
@@ -223,6 +224,7 @@ export const firms: Firm[] = [
     website: "https://aquafunded.com/",
     color: "#58d8ff",
     verified: true,
+    featuredInOfferDesk: true,
     models: ["1 Phase", "2 Phase", "Instant"],
     summary: "A multi-platform firm with several evaluation formats. Compare the actual loss model and consistency conditions before weighing any promotional incentive.",
   },

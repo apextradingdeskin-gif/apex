@@ -42,7 +42,7 @@ type FirmDirectoryProps = {
 export default function FirmDirectory({ onActivateCashback, onWriteReview }: FirmDirectoryProps) {
   const { firms } = useAccount();
   const activeFirms = firms.filter((firm) => firm.status !== "archived");
-  const offerFirms = [activeFirms[0], activeFirms[3], activeFirms[6]].filter(Boolean) as Firm[];
+  const offerFirms = activeFirms.filter((firm) => firm.featuredInOfferDesk);
   const countries = Array.from(new Set(activeFirms.map((firm) => firm.country))).sort();
   const [query, setQuery] = useState("");
   const [market, setMarket] = useState(() => {
