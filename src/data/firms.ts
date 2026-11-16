@@ -27,8 +27,6 @@ export type Firm = {
   summary: string;
   cashbackRate?: number;
   status?: "active" | "archived";
-  /** Show this firm in the homepage Top Trusted section. */
-  featured?: boolean;
   affiliateUrl?: string;
   affiliateClickParam?: string;
   apexCode?: string;
@@ -68,7 +66,6 @@ export const firms: Firm[] = [
   {
     id: "the5ers",
     name: "The5ers",
-    featured: true,
     monogram: "5",
     country: "Israel",
     countryCode: "IL",

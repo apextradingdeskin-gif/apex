@@ -1,12 +1,12 @@
-PropApex Top Trusted section fix
+PropApex featured firms layout fix
 
-Changes:
-- Replaced the continuously scrolling, duplicated logo marquee with a centered responsive flex grid.
-- Only firms explicitly selected for Top Trusted are shown; duplicate firm names are suppressed.
-- The5ers is featured by default for legacy records and seed data, and is placed in the middle of the selected firms.
-- Added the admin Firm Editor checkbox: "Show in Top Trusted section". New firms default to off; enabling it adds the firm to the grid automatically.
-- Cards wrap into centered rows on narrower screens.
+Files changed:
+- src/App.tsx: Top Trusted section now renders only active featured firms, defaults The5ers as featured for older records, and deduplicates by firm name.
+- src/index.css: Replaced the moving left-aligned marquee with a centered responsive grid. One card centers; multiple cards sit side-by-side and wrap on smaller screens.
+- src/data/firms.ts: Added the optional featured property to the Firm type.
+- src/components/admin/FirmEditor.tsx: Added the "Show in Top Trusted section" checkbox. The5ers defaults to selected for older records; new firms default off and can be selected.
 
-Build validation:
-- A production build could not be completed because the uploaded archive does not include the Vite executable in node_modules. Run `npm ci` and `npm run build` in the project folder before deployment.
-- Keep your local `.env.local` file out of public ZIPs; `.env.example` is included.
+Important:
+- Keep your existing .env.local file locally; it is intentionally excluded from this ZIP.
+- node_modules is intentionally excluded; install dependencies with npm ci before local build.
+- A build could not be run in this environment because npm dependencies were unavailable and npm install timed out. Please check the Cloudflare/Netlify build log after pushing these files.
