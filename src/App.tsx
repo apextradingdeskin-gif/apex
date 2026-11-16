@@ -188,16 +188,9 @@ function FAQSection() {
 
 export default function App() {
   const { user, firms, platformSettings, backendConfigured, backendStatus, backendError } = useAccount();
-  // Only active firms belong in public-facing counts and the trusted-firm marquee.
+  // Public directory counts include all active firms; TOP TRUSTED is an explicit admin selection.
   const activeFirms = firms.filter((firm) => firm.status !== "archived");
-  // The5ers is the initial featured firm; admins can feature any active firm.
-  const featuredFirms = Array.from(
-    new Map(
-      activeFirms
-        .filter((firm) => firm.featured ?? firm.id === "the5ers")
-        .map((firm) => [firm.name.trim().toLowerCase(), firm]),
-    ).values(),
-  );
+  const featuredFirms = activeFirms.filter((firm) => firm.featured ?? firm.id === "the5ers");
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   useEffect(() => {
@@ -364,7 +357,6 @@ export default function App() {
                   <FirmLogo firm={firm} /><span>{firm.name}</span>{firm.verified && <BadgeCheck size={14} />}
                 </a>
               ))}
-              {featuredFirms.length === 0 && <p className="featured-firms-empty">Featured firms will appear here.</p>}
             </div>
           </div>
           <div className="container trust-principles">

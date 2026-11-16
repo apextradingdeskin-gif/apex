@@ -27,6 +27,7 @@ export type Firm = {
   summary: string;
   cashbackRate?: number;
   status?: "active" | "archived";
+  /** Show this firm in the homepage TOP TRUSTED section. */
   featured?: boolean;
   affiliateUrl?: string;
   affiliateClickParam?: string;

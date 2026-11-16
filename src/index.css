@@ -148,10 +148,9 @@ section[id], div[id] { scroll-margin-top: 116px; }
 .trust-heading h2 em, .section-heading h2 em, .faq-intro h2 em { color: var(--lime); font-style: normal; font-weight: 500; }
 .trust-heading > p:last-child { margin: 17px 0 0; color: var(--muted); font-size: 14.2px; }
 .logo-marquee { width: 100%; margin: 43px auto 0; padding: 0 24px; overflow: visible; mask-image: none; }
-.logo-marquee-track { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(218px, 100%), 218px)); justify-content: center; align-items: center; gap: 12px; width: 100%; max-width: 1100px; margin: 0 auto; padding: 5px 0; animation: none; }
-.marquee-firm { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; min-height: 70px; color: #b5beac; border: 1px solid var(--line); border-radius: 13px; background: #0f130e; font-size: 13px; font-weight: 700; transition: transform .25s, border-color .25s, color .25s; }
-.marquee-firm:hover { color: var(--text); border-color: var(--line-strong); transform: translateY(-3px); }
-.featured-firms-empty { grid-column: 1 / -1; margin: 0; color: var(--muted); text-align: center; }
+.logo-marquee-track { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; width: min(100%, 1100px); margin: 0 auto; padding: 5px 0; animation: none; }
+.marquee-firm { display: flex; align-items: center; justify-content: center; gap: 11px; width: 218px; max-width: 100%; height: 70px; flex: 0 1 218px; color: #b5beac; border: 1px solid var(--line); border-radius: 13px; background: #0f130e; font-size: 13px; font-weight: 700; transition: transform .25s, border-color .25s, color .25s; transform: perspective(500px) rotateX(2deg); }
+.marquee-firm:hover { color: var(--text); border-color: var(--line-strong); transform: perspective(500px) rotateX(-3deg) translateY(-3px); }
 .marquee-firm > svg { color: var(--lime); }
 .marquee-firm .firm-logo { width: 35px; height: 35px; border-radius: 9px; font-size: 11.8px; }
 .trust-principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 45px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.015); }
@@ -637,6 +636,6 @@ section[id], div[id] { scroll-margin-top: 116px; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .logo-marquee-track { animation: none; }
-  .logo-marquee { overflow: visible; mask-image: none; }
+  .logo-marquee { overflow-x: auto; mask-image: none; }
   .tilt-card { transform: none !important; }
 }
